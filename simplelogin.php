@@ -1,14 +1,33 @@
 <?php
+
 defined('_JEXEC') or die;
 
+use Joomla\DI\Container;
+use Joomla\DI\ServiceProviderInterface;
 use Joomla\CMS\Extension\PluginInterface;
-use Joomla\CMS\Plugin\CMSPlugin;
-use Joomla\Event\DispatcherInterface;
+use Joomla\CMS\Plugin\PluginHelper;
+use AdStam\Plugin\System\Simplelogin\Extension\Simplelogin;
 
-class PlgSystemSimplelogin extends CMSPlugin implements PluginInterface
-{
-    public function __construct(DispatcherInterface $dispatcher, array $config)
+return new class implements ServiceProviderInterface {
+
+    public function register(Container $container)
     {
-        parent::__construct($dispatcher, $config);
+        $container->set(
+            PluginInterface::class,
+            function (Container $container) {
+                $dispatcher = $container->get('DispatcherFactory')
+                    ->createDispatcher();
+                
+                $plugin = new Simplelogin(
+                    $dispatcher,
+                    (array) PluginHelper::getPlugin('system', 'simplelogin'),
+                    $container->get(\Joomla\CMS\Application\CMSApplicationInterface::class),
+                    $container->get(\Joomla\Database\DatabaseInterface::class),
+                    $container->get(\Joomla\CMS\User\UserFactoryInterface::class),
+                    $container->get(\Joomla\CMS\Mail\MailFactoryInterface::class)
+                );
+                return $plugin;
+            }
+        );
     }
-}
+};
