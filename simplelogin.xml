@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="plugin" group="system" method="upgrade">
+    <name>System - Simple Login</name>
+    <author>Ad Stam</author>
+    <version>0.2.0</version>
+    <creationDate>2026-04-06</creationDate>
+    <copyright>Copyright (C) 2026 Ad Stam. All rights reserved.</copyright>
+    <license>GNU General Public License version 2 or later</license>
+    <description>Maakt inloggen zonder wachtwoord mogelijk via een e-mail link.</description>
+
+    <!-- Namespace voor Joomla 6 -->
+    <namespace path="src/Extension">AdStam\Plugin\System\Simplelogin\Extension</namespace>
+
+    <!-- Bestanden en mappen -->
+    <files>
+        <folder>language</folder>
+        <folder>services</folder>
+        <folder>src</folder>
+        <folder>layouts</folder>
+        <folder>sql</folder>
+        <filename>redirect.php</filename>
+    </files>
+
+    <!-- Service Provider (vereist voor Joomla 6) -->
+    <services>
+        <provider>services/provider.php</provider>
+    </services>
+
+    <!-- Installatie SQL -->
+    <install>
+        <sql>
+            <file driver="mysql" charset="utf8mb4">sql/install.mysql.utf8.sql</file>
+        </sql>
+    </install>
+
+    <!-- Deinstallatie SQL -->
+    <uninstall>
+        <sql>
+            <file driver="mysql" charset="utf8mb4">sql/uninstall.mysql.utf8.sql</file>
+        </sql>
+    </uninstall>
+
+    <!-- Configuratie -->
+    <config>
+        <fields name="params">
+            <!-- Rest van je XML blijft hetzelfde -->
+        </fields>
+    </config>
+</extension>
