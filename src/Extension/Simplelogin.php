@@ -12,6 +12,7 @@ use Joomla\CMS\Mail\MailFactoryInterface;
 use Joomla\Event\Event;
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\Log\Log;
+use Joomla\Event\DispatcherInterface;
 
 class Simplelogin extends CMSPlugin
 {
@@ -24,24 +25,25 @@ class Simplelogin extends CMSPlugin
     protected string $statusType = 'danger';
     protected bool $showForm = true;
     protected string $redirectUrl = '';
+    
 
-    public function __construct(
-        &$subject,
-        $config,
-        CMSApplicationInterface $app,
-        DatabaseInterface $db,
-        UserFactoryInterface $userFactory,
-        MailFactoryInterface $mailFactory
-    ) {
-        parent::__construct($subject, $config);
+public function __construct(
+    \Joomla\Event\DispatcherInterface $dispatcher,
+    $config,
+    CMSApplicationInterface $app,
+    DatabaseInterface $db,
+    UserFactoryInterface $userFactory,
+    MailFactoryInterface $mailFactory
+) {
+    parent::__construct($dispatcher, $config);
 
-        $this->app = $app;
-        $this->db = $db;
-        $this->userFactory = $userFactory;
-        $this->mailFactory = $mailFactory;
+    $this->app = $app;
+    $this->db = $db;
+    $this->userFactory = $userFactory;
+    $this->mailFactory = $mailFactory;
 
-        Log::addLogger(['text_file' => 'plg_system_simplelogin.php']);
-    }
+    Log::addLogger(['text_file' => 'plg_system_simplelogin.php']);
+}
 
     public function onAfterInitialise(Event $event): void
     {
