@@ -46,7 +46,6 @@ CREATE TABLE IF NOT EXISTS `#__simple_login_log` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 
   `type` ENUM(
-    		 'LoginFlow',
 				 'AccountEvent',
 				 'DebugDiagnostics',
 				 'DebugFlowTrace',
