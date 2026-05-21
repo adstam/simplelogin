@@ -1,7 +1,7 @@
 <?php
 defined('_JEXEC') or die;
 
-use Joomla\CMS\Factory;
+use Joomla\CMS\Cache\Cache;
 
 class PlgSystemSimpleloginInstallerScript
 {
@@ -14,13 +14,19 @@ class PlgSystemSimpleloginInstallerScript
 
     private function clearCaches(): void
     {
+        // Verwijder autoloader cache
         $cacheFile = JPATH_CACHE . '/autoload_psr4.php';
         if (file_exists($cacheFile)) {
             @unlink($cacheFile);
         }
 
-        $app = Factory::getApplication();
-        $app->cleanCache('_system');
-        $app->cleanCache('com_plugins');
+        // Leeg Joomla cache via Cache klasse
+        $options = ['defaultgroup' => '_system'];
+        $cache = Cache::getInstance('callback', $options);
+        $cache->clean();
+
+        $options = ['defaultgroup' => 'com_plugins'];
+        $cache = Cache::getInstance('callback', $options);
+        $cache->clean();
     }
 }
