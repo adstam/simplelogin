@@ -9,11 +9,13 @@
     <description>PLG_SYSTEM_SIMPLELOGIN_DESCRIPTION</description>
 
     <namespace path="src" allowoverride="true">Adstam\Plugin\System\Simplelogin</namespace>
+    <scriptfile>script.php</scriptfile>
 
     <files>
         <folder>language</folder>
         <folder>services</folder>
         <folder plugin="simplelogin">src</folder>
+        <filename>script.php</filename>
         <folder>layouts</folder>
         <folder>sql</folder>
     </files>
