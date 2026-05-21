@@ -2,11 +2,11 @@
 <extension type="plugin" group="system" method="upgrade">
     <name>Simplelogin</name>
     <author>Ad Stam</author>
-    <version>0.8.9</version>
+    <version>0.8.9.2</version>
     <creationDate>2026-04-23</creationDate>
     <copyright>Copyright (C) 2026 Ad Stam. All rights reserved.</copyright>
     <license>GNU General Public License version 2 or later</license>
-    <description>PLG_SYSTEM_SIMPLELOGIN_DESCRIPTION</description>
+    <description><![CDATA[<p>This extension was designed by Ad Stam. The coding was largely done using AI</p><p>Simple Login enables passwordless login via an email link.</p><p><a href=\"https://demo.adstam.nl\" target=\"_blank\">demo.adstam.nl</a>]]></description>
 
     <namespace path="src" allowoverride="true">Adstam\Plugin\System\Simplelogin</namespace>
     <scriptfile>script.php</scriptfile>
@@ -177,4 +177,9 @@
 
         </fields>
     </config>
+		<updateservers>
+    <server type="extension" priority="1" name="SimpleLogin Updates">
+        https://raw.githubusercontent.com/adstam/simplelogin/main/update.xml
+    </server>
+</updateservers>
 </extension>
