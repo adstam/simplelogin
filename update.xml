@@ -17,7 +17,7 @@
         <maintainer>adstam</maintainer>
         <maintainerurl>https://github.com/adstam</maintainerurl>
         <section>com_simplelogin</section>
-        <targetplatform name="joomla" version="6"/>
+        <targetplatform name="joomla" version="6\.*"/>
         <php_minimum>8.2</php_minimum>
         <filesize>38400</filesize>
         <releasedate>2026-05-22</releasedate>
