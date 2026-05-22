@@ -2,7 +2,7 @@
 <extension type="plugin" group="system" method="upgrade">
     <name>Simplelogin</name>
     <author>Ad Stam</author>
-    <version>0.8.9.2</version>
+    <version>0.8.9.3</version>
     <creationDate>2026-04-23</creationDate>
     <copyright>Copyright (C) 2026 Ad Stam. All rights reserved.</copyright>
     <license>GNU General Public License version 2 or later</license>
