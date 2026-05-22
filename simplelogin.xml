@@ -15,6 +15,7 @@
         <folder>language</folder>
         <folder>services</folder>
         <folder plugin="simplelogin">src</folder>
+				<folder>system</folder>
         <filename>script.php</filename>
         <folder>layouts</folder>
         <folder>sql</folder>
