@@ -5,6 +5,7 @@
         <description>Eerste gepubliceerde versie tbv demo doeleinden</description>
         <element>simplelogin</element>
         <type>plugin</type>
+				<folder>system</folder>
         <version>0.8.9.3</version>
         <infourl>https://demo.adstam.nl/index.php/onder-handen-werk</infourl>
         <downloads>
