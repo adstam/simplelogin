@@ -9,6 +9,5 @@
         <downloads>
             <downloadurl type="full" format="zip">https://raw.githubusercontent.com/adstam/simplelogin/main/simplelogin.zip</downloadurl>
         </downloads>
-        <targetplatform name="joomla" version="6.[12]"/>
     </update>
 </updates>

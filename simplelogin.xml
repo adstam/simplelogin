@@ -155,7 +155,6 @@
                        default="10" />
             </fieldset>
 
- .
             <fieldset name="throttle_report" label="PLG_SYSTEM_SIMPLELOGIN_FIELDSET_SESSIONS" description="PLG_SYSTEM_SIMPLELOGIN_FIELDSET_SESSIONS_DESCRIPTION">
 											 <field name="throttle_cleanup_time"
                        				type="number"
