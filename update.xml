@@ -5,7 +5,7 @@
 		<description>Plugin that provides a safe link to login</description>
 		<element>simplelogin</element>
 		<type>plugin</type>
-		<version>0.8.0</version>
+		<version>0.8.1</version>
 		<client>site</client>
 		<folder>system</folder>
 		<downloads>
