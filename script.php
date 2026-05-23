@@ -12,12 +12,18 @@ class PlgSystemSimpleloginInstallerScript
         }
     }
 
-    private function clearCaches(): void
-    {
-        // Verwijder autoloader cache
-        $cacheFile = JPATH_CACHE . '/autoload_psr4.php';
+		private function clearCaches(): void
+		{
+        // Gebruik expliciet het administrator cache pad waar de autoloader staat
+        $cacheFile = JPATH_ADMINISTRATOR . '/cache/autoload_psr4.php';
+        
         if (file_exists($cacheFile)) {
             @unlink($cacheFile);
+            
+            // Dwing PHP om de OPcache voor dit specifieke bestand te resetten
+            if (function_exists('opcache_invalidate')) {
+                @opcache_invalidate($cacheFile, true);
+            }
         }
 
         // Leeg Joomla cache via Cache klasse
@@ -29,4 +35,11 @@ class PlgSystemSimpleloginInstallerScript
         $cache = Cache::getInstance('callback', $options);
         $cache->clean();
     }
+
+		public function uninstall($parent): void
+		{
+        $this->clearCaches();
+    }
+		
 }
+
