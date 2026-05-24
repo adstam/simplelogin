@@ -50,9 +50,13 @@ class Simplelogin extends CMSPlugin
     public function __construct($dispatcher, array $config)
     {
         parent::__construct($dispatcher, $config);
-        Log::addLogger(['text_file' => 'plg_system_simplelogin.php']);
-    }
 
+        Log::addLogger(
+            ['text_file' => 'plg_system_simplelogin.php'],
+            Log::ALL,
+            ['simplelogin']
+        );
+    }
 
     // ===========================================================================
     // Joomla event handlers
@@ -332,12 +336,129 @@ public function onAjaxSimplelogin(): array
 				if ($method === 'PurgeLogRows') {
 				    return $this->ajaxPurgeLogRows();
 				}
+				
+				if ($method === 'ExportLog') {
+    			 return $this->ajaxExportLog();
+				}
 
         return ['success' => false, 'message' => Text::sprintf('PLG_SYSTEM_SIMPLELOGIN_ERR_UNKNOWN_METHOD', $method)];
     } catch (\Throwable $e) {
         return ['success' => false, 'message' => $e->getMessage()];
     }
 }
+
+private function ajaxExportLog(): array
+{
+    if ($denied = $this->assertPluginManageAccess()) {
+        return $denied;
+    }
+
+    $db  = Factory::getDbo();
+    $app = Factory::getApplication();
+
+    $since = date('Y-m-d H:i:s', strtotime('-24 hours'));
+
+    // ----------------------------------------------------------------
+    // Deel 1: log-tabel
+    // ----------------------------------------------------------------
+    $rows = $db->setQuery(
+        $db->getQuery(true)
+            ->select(['created', 'type', 'status', 'username', 'user_agent'])
+            ->from('#__simple_login_log')
+            ->where('created >= ' . $db->quote($since))
+            ->order('created ASC')
+    )->loadAssocList();
+
+    $lines   = [];
+    $lines[] = '=== SIMPLELOGIN LOG TABLE (laatste 24 uur) ===';
+    $lines[] = str_repeat('-', 60);
+
+    if (empty($rows)) {
+        $lines[] = '(geen regels)';
+    } else {
+        foreach ($rows as $row) {
+            $lines[] = sprintf(
+                '[%s] %-22s %-30s user: %s',
+                $row['created'],
+                $row['type'],
+                $row['status'],
+                $row['username'] ?? '-'
+            );
+        }
+    }
+
+    $lines[] = '';
+
+    // ----------------------------------------------------------------
+    // Deel 2: Joomla-logbestand
+    // ----------------------------------------------------------------
+    $logPath = $app->get('log_path', JPATH_ROOT . '/logs')
+        . '/plg_system_simplelogin.php';
+
+    $lines[] = '=== SIMPLELOGIN FILE LOG ===';
+    $lines[] = str_repeat('-', 60);
+
+    if (!is_file($logPath)) {
+        $lines[] = '(logbestand niet gevonden: ' . $logPath . ')';
+    } else {
+        $content   = file_get_contents($logPath);
+        $cutoff    = strtotime('-24 hours');
+        $fileLines = explode("\n", $content);
+        $found     = false;
+
+        foreach ($fileLines as $fileLine) {
+            // Joomla log-regels beginnen met een datum: "2026-05-24T..."
+            if (preg_match('/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})/', $fileLine, $m)) {
+                if (strtotime($m[1]) < $cutoff) {
+                    continue;
+                }
+            }
+
+            if (str_starts_with($fileLine, '#') || trim($fileLine) === '') {
+                continue;
+            }
+
+            $lines[] = $fileLine;
+            $found   = true;
+        }
+
+        if (!$found) {
+            $lines[] = '(geen regels in de laatste 24 uur)';
+        }
+    }
+
+    $body = implode("\n", $lines);
+
+    // ----------------------------------------------------------------
+    // Mail versturen
+    // ----------------------------------------------------------------
+    $config  = $app->getConfig();
+    $mailer  = Factory::getMailer();
+    $mailer->setSender([$config->get('mailfrom'), $config->get('fromname')]);
+    $mailer->addRecipient($config->get('mailfrom'));
+    $mailer->setSubject(
+        '[' . $config->get('sitename') . '] Simplelogin log export ' . date('Y-m-d H:i')
+    );
+    $mailer->setBody($body);
+
+    $sent = $mailer->send();
+
+    Factory::getApplication()->getLanguage()->load(
+        'plg_system_simplelogin',
+        JPATH_PLUGINS . '/system/simplelogin'
+    );
+
+    if ($sent === true) {
+        return ['success' => true, 'message' => Text::sprintf(
+           'PLG_SYSTEM_SIMPLELOGIN_MSG_EXPORT_SENT',
+            $config->get('mailfrom')
+        )];
+    }
+
+    return ['success' => false, 'message' => Text::_(
+    'PLG_SYSTEM_SIMPLELOGIN_MSG_EXPORT_FAILED'
+    )];
+		}
 
 private function ajaxGetLogRows(): array
 {
@@ -1670,7 +1791,8 @@ private function cleanup(int $userId): void
         } catch (\Exception $e) {
             Log::add(
                 'Simplelogin log insert failed: ' . $e->getMessage(),
-                Log::ERROR
+                Log::ERROR,
+    						['simplelogin']
             );
         }
 
@@ -1706,7 +1828,8 @@ private function cleanup(int $userId): void
         } catch (\Exception $e) {
             Log::add(
                 'Simplelogin throttle insert failed: ' . $e->getMessage(),
-                Log::ERROR
+                Log::ERROR,
+								['simplelogin']
             );
         }
     }

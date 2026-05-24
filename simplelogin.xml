@@ -2,7 +2,7 @@
 <extension type="plugin" group="system" method="upgrade">
     <name>Simplelogin</name>
     <author>Ad Stam</author>
-    <version>0.8.6</version>
+    <version>0.8.7</version>
     <creationDate>2026-04-23</creationDate>
     <copyright>Copyright (C) 2026 Ad Stam. All rights reserved.</copyright>
     <license>GNU General Public License version 2 or later</license>
@@ -166,11 +166,12 @@
             </fieldset>
 
             <fieldset name="log_report" label="PLG_SYSTEM_SIMPLELOGIN_FIELDSET_LOGGING" description="PLG_SYSTEM_SIMPLELOGIN_FIELDSET_LOGGING_DESCRIPTION">
-											 <field name="log_retention_days"
-                       				type="number"
-                       				label="PLG_SYSTEM_SIMPLELOGIN_LOG_CLEANUP_TIME_VALUE"
-                       				default="30"
-															description="PLG_SYSTEM_SIMPLELOGIN_LOG_CLEANUP_TIME_DESCRIPTION" />
+                <field name="log_export" type="exportlog" label="" />
+                <field name="log_retention_days"
+                       type="number"
+                       label="PLG_SYSTEM_SIMPLELOGIN_LOG_CLEANUP_TIME_VALUE"
+                       default="30"
+                       description="PLG_SYSTEM_SIMPLELOGIN_LOG_CLEANUP_TIME_DESCRIPTION" />
                 <field name="log_report" type="logreport" label="" />
             </fieldset>
 
