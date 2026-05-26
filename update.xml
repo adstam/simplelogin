@@ -5,13 +5,13 @@
 		<description>Plugin that provides a safe link to login</description>
 		<element>simplelogin</element>
 		<type>plugin</type>
-		<version>0.9.0</version>
+		<version>1.0.0</version>
 		<client>site</client>
 		<folder>system</folder>
 		<downloads>
 			<downloadurl type="full" format="zip">https://raw.githubusercontent.com/adstam/simplelogin/main/simplelogin.zip</downloadurl>
 		</downloads>
-		<sha256>c8f035861eaaf324639674b429b2973514b382922b7dbb006631b766c9661a27</sha256>
+		<sha256>78d64f3915dd41af87b7f0174934a0b51cbcd0df66b487b0ab4299e147869d00</sha256>
 		<targetplatform name="joomla" version="[56].[1234]" />
 		<php_minimum>8.1</php_minimum>
 	</update>
