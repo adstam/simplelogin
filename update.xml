@@ -11,7 +11,7 @@
 		<downloads>
 			<downloadurl type="full" format="zip">https://raw.githubusercontent.com/adstam/simplelogin/main/simplelogin.zip</downloadurl>
 		</downloads>
-		<sha256>6e262f4bc0c04b42e801b7097e1d532dec3bc1daafde8d183031b2cca092db64</sha256>
+		<sha256>c8f035861eaaf324639674b429b2973514b382922b7dbb006631b766c9661a27</sha256>
 		<targetplatform name="joomla" version="[56].[1234]" />
 		<php_minimum>8.1</php_minimum>
 	</update>

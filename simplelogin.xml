@@ -48,7 +48,8 @@
                 <field name="landing_page_option"
                        type="radio"
                        label="PLG_SYSTEM_SIMPLELOGIN_LANDING_PAGE_OPTION_LABEL"
-                       default="homepage">
+                       default="homepage"
+											 description="PLG_SYSTEM_SIMPLELOGIN_LANDING_PAGE_OPTION_LABEL_DESCRIPTION">
 
                     <option value="homepage">PLG_SYSTEM_SIMPLELOGIN_OPTION_HOMEPAGE</option>
                     <option value="custom">PLG_SYSTEM_SIMPLELOGIN_OPTION_CUSTOM</option>
@@ -62,7 +63,8 @@
                 <field name="allow_password_login"
                        type="radio"
                        label="PLG_SYSTEM_SIMPLELOGIN_ALLOW_PASSWORD_LOGIN_LABEL"
-                       default="0">
+                       default="0"
+											 description="PLG_SYSTEM_SIMPLELOGIN_ALLOW_PASSWORD_LOGIN_DESCRIPTION">
 
                     <option value="0">PLG_SYSTEM_SIMPLELOGIN_OPTION_NO</option>
                     <option value="1">PLG_SYSTEM_SIMPLELOGIN_OPTION_YES</option>
@@ -118,17 +120,20 @@
                 <field name="expiry_minutes"
                        type="number"
                        label="PLG_SYSTEM_SIMPLELOGIN_EXPIRY_MINUTES_LABEL"
+											 description="PLG_SYSTEM_SIMPLELOGIN_EXPIRY_MINUTES_DESCRIPTION"
                        default="15" />
 
                 <field name="invite_expiry_minutes"
                        type="number"
                        label="PLG_SYSTEM_SIMPLELOGIN_INVITE_EXPIRY_MINUTES_LABEL"
-                       default="30" />
+                       default="30"
+											 description="PLG_SYSTEM_SIMPLELOGIN_INVITE_EXPIRY_MINUTES_DESCRIPTION" />
 
                 <field name="request_cooldown_seconds"
                        type="number"
                        label="PLG_SYSTEM_SIMPLELOGIN_REQUEST_COOLDOWN_SECONDS_LABEL"
-                       default="30" />
+                       default="30"
+											 description="PLG_SYSTEM_SIMPLELOGIN_REQUEST_COOLDOWN_SECONDS_DESCRIPTION" />
 
                 <field name="kopratelimit"
                        type="spacer"
@@ -137,7 +142,8 @@
                 <field name="rate_limit_ip_max"
                        type="number"
                        label="PLG_SYSTEM_SIMPLELOGIN_RATE_LIMIT_IP_MAX_LABEL"
-                       default="10" />
+                       default="10"
+											 description="PLG_SYSTEM_SIMPLELOGIN_RATE_LIMIT_IP_MAX_DESCRIPTION" />
 
                 <field name="rate_limit_ip_window"
                        type="number"
@@ -147,7 +153,8 @@
                 <field name="rate_limit_user_max"
                        type="number"
                        label="PLG_SYSTEM_SIMPLELOGIN_RATE_LIMIT_USER_MAX_LABEL"
-                       default="5" />
+                       default="5" 
+											 description="PLG_SYSTEM_SIMPLELOGIN_RATE_LIMIT_USER_MAX_DESCRIPTION"/>
 
                 <field name="rate_limit_user_window"
                        type="number"
@@ -166,7 +173,9 @@
             </fieldset>
 
             <fieldset name="log_report" label="PLG_SYSTEM_SIMPLELOGIN_FIELDSET_LOGGING" description="PLG_SYSTEM_SIMPLELOGIN_FIELDSET_LOGGING_DESCRIPTION">
-                <field name="log_export" type="exportlog" label="" />
+                <field name="log_export" 
+											 type="exportlog" 
+											 label=""/>
                 <field name="log_retention_days"
                        type="number"
                        label="PLG_SYSTEM_SIMPLELOGIN_LOG_CLEANUP_TIME_VALUE"

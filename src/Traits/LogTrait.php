@@ -160,6 +160,7 @@ trait LogTrait
         $map = [
             // AccountEvent
             'password_updated'                   => ['type' => 'AccountEvent',      'debugonly' => false, 'throttle' => true],
+            'register_cleanup_deleted'           => ['type' => 'AccountEvent',      'debugonly' => false, 'throttle' => false],
             'register_existing_email'            => ['type' => 'AccountEvent',      'debugonly' => false, 'throttle' => false],
             'register_success'                   => ['type' => 'AccountEvent',      'debugonly' => false, 'throttle' => false],
             'user_not_found'                     => ['type' => 'AccountEvent',      'debugonly' => false, 'throttle' => true],

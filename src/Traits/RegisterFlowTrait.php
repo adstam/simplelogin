@@ -19,6 +19,9 @@ use Joomla\CMS\User\UserFactoryInterface;
  * - Versturen van invite-links per e-mail
  * - Opbouwen van mailbodies via #hashtag-vervanging
  *
+ * showLoginForm-beleid:
+ *   false bij alle fout- en tokensituaties — alleen de melding tonen
+ *
  * Gebruikt state properties van Simplelogin:
  *   $this->statusMessage, $this->statusType, $this->autoSubmit,
  *   $this->showLoginForm, $this->postLogin, $this->registerFlow
@@ -28,7 +31,8 @@ use Joomla\CMS\User\UserFactoryInterface;
  *   UtilityTrait::normalizeEmail(), isValidEmail(), generateUsername(),
  *               generateToken(), consumeToken(), isAccountActivated(),
  *               isPendingActivation(), createPendingActivation(),
- *               setError(), finishRegisterError(), redirectWithMessage()
+ *               deleteUnactivatedUser(), setError(),
+ *               finishRegisterError(), finishTokenError(), redirectWithMessage()
  */
 trait RegisterFlowTrait
 {
@@ -38,8 +42,8 @@ trait RegisterFlowTrait
 
     /**
      * Registratie flow.
-     * GET  ? toon het registratieformulier.
-     * POST ? valideer e-mail, maak account aan, stuur invite.
+     * GET  → toon het registratieformulier.
+     * POST → valideer e-mail, maak account aan, stuur invite.
      */
     private function handleRegister(): void
     {
@@ -120,31 +124,33 @@ trait RegisterFlowTrait
     /**
      * Invite-activatie GET: alleen UI voorbereiden, geen state changes.
      * Cruciaal tegen Outlook SafeLinks en andere link-scanners.
+     *
+     * Bij een verlopen link wordt het account direct verwijderd via
+     * deleteUnactivatedUser() — niet via de generieke cleanupExpiredRegistrations()
+     * omdat die een dubbele tijdscheck gebruikt die net-verlopen tokens overslaat.
      */
     private function handleInviteActivation(object $row, int $loginId, string $validator): void
     {
-        if ((int) $row->used === 1) {
+				if ((int) $row->used === 1) {
             $this->log((int) $row->user_id, 'invite_already_used', $loginId);
-            $this->setError(Text::_('PLG_SYSTEM_SIMPLELOGIN_INVITE_ALREADY_USED'));
-            $this->showLoginForm = true;
+            $this->finishTokenError(Text::_('PLG_SYSTEM_SIMPLELOGIN_INVITE_ALREADY_USED'));
             return;
         }
 
         if (!empty($row->expires) && strtotime($row->expires) < time()) {
             $this->log((int) $row->user_id, 'invite_expired', $loginId);
-            $this->setError(Text::_('PLG_SYSTEM_SIMPLELOGIN_INVITE_EXPIRED'));
-            $this->showLoginForm = true;
+            $this->deleteUnactivatedUser((int) $row->user_id, $loginId);
+            $this->finishTokenError(Text::_('PLG_SYSTEM_SIMPLELOGIN_INVITE_EXPIRED_REGISTER_AGAIN'));
             return;
         }
 
         if (!password_verify($validator, $row->token)) {
             $this->log((int) $row->user_id, 'invite_invalid', $loginId);
-            $this->setError(Text::_('PLG_SYSTEM_SIMPLELOGIN_INVITE_INVALID'));
-            $this->showLoginForm = true;
+            $this->finishTokenError(Text::_('PLG_SYSTEM_SIMPLELOGIN_INVITE_INVALID'));
             return;
         }
 
-        // Alleen UI + POST trigger � geen DB-wijzigingen hier
+        // Alleen UI + POST trigger — geen DB-wijzigingen hier
         $this->statusMessage = Text::_('PLG_SYSTEM_SIMPLELOGIN_STATUS_ACTIVATING');
         $this->statusType    = 'info';
         $this->postLogin     = true;
@@ -153,14 +159,17 @@ trait RegisterFlowTrait
 
     /**
      * Invite-activatie POST: token consumeren, account activeren, login-link sturen.
+     *
+     * Bij een verlopen link wordt het account direct verwijderd via
+     * deleteUnactivatedUser() zodat de gebruiker direct opnieuw kan registreren.
      */
     private function handleInvitePostActivation(object $row, int $loginId, string $validator): void
     {
-        $app = Factory::getApplication();
+        
+				$app = Factory::getApplication();
 
         if (!$app->getSession()->checkToken()) {
             $this->setError(Text::_('PLG_SYSTEM_SIMPLELOGIN_SESSION_EXPIRED'));
-            $this->showLoginForm = true;
             $this->redirectWithMessage();
             return;
         }
@@ -169,22 +178,20 @@ trait RegisterFlowTrait
 
         if ((int) $row->used === 1) {
             $this->log((int) $row->user_id, 'invite_post_already_used', $loginId);
-            $this->setError(Text::_('PLG_SYSTEM_SIMPLELOGIN_INVITE_ALREADY_USED'));
-            $this->showLoginForm = true;
+            $this->finishTokenError(Text::_('PLG_SYSTEM_SIMPLELOGIN_INVITE_ALREADY_USED'));
             return;
         }
 
         if (!password_verify($validator, $row->token)) {
             $this->log((int) $row->user_id, 'invite_post_invalid', $loginId);
-            $this->setError(Text::_('PLG_SYSTEM_SIMPLELOGIN_INVITE_INVALID'));
-            $this->showLoginForm = true;
+            $this->finishTokenError(Text::_('PLG_SYSTEM_SIMPLELOGIN_INVITE_INVALID'));
             return;
         }
 
         if (!empty($row->expires) && strtotime($row->expires) < time()) {
             $this->log((int) $row->user_id, 'invite_post_expired', $loginId);
-            $this->setError(Text::_('PLG_SYSTEM_SIMPLELOGIN_INVITE_EXPIRED'));
-            $this->showLoginForm = true;
+            $this->deleteUnactivatedUser((int) $row->user_id, $loginId);
+            $this->finishTokenError(Text::_('PLG_SYSTEM_SIMPLELOGIN_INVITE_EXPIRED_REGISTER_AGAIN'));
             return;
         }
 

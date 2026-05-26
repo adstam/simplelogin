@@ -8,6 +8,7 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
+use Joomla\CMS\User\UserFactoryInterface;
 
 /**
  * UtilityTrait
@@ -15,6 +16,7 @@ use Joomla\CMS\Uri\Uri;
  * Verantwoordelijk voor:
  * - Token genereren, consumeren en intrekken
  * - Opschonen van throttle-, log- en tokenrecords na succesvolle login
+ * - Verwijderen van niet-geactiveerde accounts bij verlopen invite-tokens
  * - E-mail validatie en normalisatie
  * - Gebruikersnaam genereren bij registratie
  * - Account activatiestatus controleren
@@ -26,6 +28,11 @@ use Joomla\CMS\Uri\Uri;
  * - Opgeslagen statusmelding vertalen na redirect
  * - Debug-modus detectie
  * - User ID ophalen op basis van e-mailadres
+ *
+ * showLoginForm-beleid:
+ *   true  — alleen bij het startscherm (?simplelogin=1 zonder token)
+ *           en na een succesvolle POST (e-mail verstuurd)
+ *   false — bij alle fout- en tokensituaties: alleen de melding tonen
  *
  * Gebruikt state properties van Simplelogin:
  *   $this->statusMessage, $this->statusType, $this->showLoginForm,
@@ -68,7 +75,7 @@ trait UtilityTrait
             $db->getQuery(true)
                 ->update('#__simple_login')
                 ->set('used = 1')
-                ->where('id = '   . (int) $loginId)
+                ->where('id = '    . (int) $loginId)
                 ->where('used = 0')
         )->execute();
 
@@ -122,12 +129,16 @@ trait UtilityTrait
 
     /**
      * Ruimt throttle-, log- en tokenrecords op na een succesvolle login.
+     * Verwijdert ook niet-geactiveerde accounts waarvan de invite-link verlopen is.
      */
     private function cleanup(int $userId): void
     {
         $db = Factory::getDbo();
 
-        // Throttle: verwijder records ouder dan throttle_cleanup_time (default 60 minuten)
+        // Stap 1: verwijder niet-geactiveerde accounts met verlopen invite-tokens
+        $this->cleanupExpiredRegistrations();
+
+        // Stap 2: throttle — verwijder records ouder dan throttle_cleanup_time
         $throttleMinutes = max(1, (int) $this->params->get('throttle_cleanup_time', 60));
 
         $db->setQuery(
@@ -138,7 +149,7 @@ trait UtilityTrait
                 )
         )->execute();
 
-        // Log: verwijder records ouder dan log_retention_days (default 30 dagen)
+        // Stap 3: log — verwijder records ouder dan log_retention_days
         $logDays = (int) $this->params->get('log_retention_days', 30);
 
         if ($logDays > 0) {
@@ -151,12 +162,93 @@ trait UtilityTrait
             )->execute();
         }
 
-        // Tokens: verwijder gebruikte en verlopen tokens
+        // Stap 4: tokens — verwijder gebruikte en verlopen tokens
         $db->setQuery("
             DELETE FROM #__simple_login
             WHERE used = 1
             OR expires < NOW()
         ")->execute();
+    }
+
+    /**
+     * Generieke cleanup: zoekt verlopen invite-tokens van niet-geactiveerde
+     * accounts en verwijdert die accounts. Gebruikt een dubbele tijdscheck
+     * (expires < NOW() én ouder dan invite_expiry_minutes) om tokens die
+     * nét zijn verlopen over te slaan.
+     * Aangeroepen vanuit cleanup() bij een succesvolle login.
+     */
+    private function cleanupExpiredRegistrations(): void
+    {
+        $db            = Factory::getDbo();
+        $expiryMinutes = max(1, (int) $this->params->get('invite_expiry_minutes', 30));
+
+        $expiredInvites = $db->setQuery(
+            $db->getQuery(true)
+                ->select(['id', 'user_id'])
+                ->from('#__simple_login')
+                ->where('type = '   . $db->quote('invite'))
+                ->where('used = 0')
+                ->where('expires < DATE_SUB(NOW(), INTERVAL ' . $expiryMinutes . ' MINUTE)')
+        )->loadObjectList();
+
+        if (empty($expiredInvites)) {
+            return;
+        }
+
+        $userFactory = Factory::getContainer()->get(UserFactoryInterface::class);
+
+        foreach ($expiredInvites as $invite) {
+            $userId = (int) $invite->user_id;
+
+            if (!$userId) {
+                continue;
+            }
+
+            $user = $userFactory->loadUserById($userId);
+
+            if (!$user || !$user->id || !$this->isPendingActivation($user->activation)) {
+                continue;
+            }
+
+            $this->deleteUnactivatedUser($userId, (int) $invite->id);
+        }
+    }
+
+    /**
+     * Verwijdert een specifiek niet-geactiveerd account direct op basis van
+     * een bekend user_id en login_id. Controleert eerst of het account
+     * inderdaad nog pending is.
+     *
+     * Gebruikt door:
+     * - cleanupExpiredRegistrations() voor de generieke cleanup bij login
+     * - RegisterFlowTrait bij een verlopen invite-link in de registratieflow,
+     *   waarbij de dubbele tijdscheck van cleanupExpiredRegistrations() te
+     *   laat zou zijn om het account direct op te ruimen
+     */
+    private function deleteUnactivatedUser(int $userId, int $loginId): void
+    {
+        $userFactory = Factory::getContainer()->get(UserFactoryInterface::class);
+        $user        = $userFactory->loadUserById($userId);
+
+        if (!$user || !$user->id || !$this->isPendingActivation($user->activation)) {
+            return;
+        }
+
+        $db = Factory::getDbo();
+
+        $db->setQuery(
+            $db->getQuery(true)
+                ->delete('#__users')
+                ->where('id = ' . (int) $userId)
+        )->execute();
+
+        $db->setQuery(
+            $db->getQuery(true)
+                ->delete('#__user_usergroup_map')
+                ->where('user_id = ' . (int) $userId)
+        )->execute();
+
+        $this->log($userId, 'register_cleanup_deleted', $loginId);
     }
 
     // ===========================================================================
@@ -258,6 +350,7 @@ trait UtilityTrait
 
     /**
      * Zet een foutmelding in de state properties.
+     * showLoginForm wordt bewust NIET gezet — alleen de melding tonen.
      */
     private function setError(string $msg): void
     {
@@ -266,24 +359,24 @@ trait UtilityTrait
     }
 
     /**
-     * Tokenfout: melding tonen via PRG (voorkomt lege overlay na auto-POST).
+     * Tokenfout: alleen de foutmelding tonen via PRG, geen invulveld.
      */
     private function finishTokenError(string $message): void
     {
         $this->postLogin     = false;
         $this->autoSubmit    = false;
-        $this->showLoginForm = true;
+        $this->showLoginForm = false;
         $this->setError($message);
         $this->redirectWithMessage();
     }
 
     /**
-     * Registratiefout: melding bewaren en registratiescherm opnieuw tonen (PRG).
+     * Registratiefout: alleen de foutmelding tonen via PRG, geen invulveld.
      */
     private function finishRegisterError(string $message): void
     {
         $this->registerFlow  = true;
-        $this->showLoginForm = true;
+        $this->showLoginForm = false;
         $this->postLogin     = false;
         $this->autoSubmit    = false;
         $this->setError($message);

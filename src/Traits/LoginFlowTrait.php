@@ -21,6 +21,11 @@ use Joomla\CMS\User\UserFactoryInterface;
  * - Het daadwerkelijk inloggen van een gebruiker via token
  * - Het versturen van login-links per e-mail
  *
+ * showLoginForm-beleid:
+ *   true  — alleen bij het startscherm (?simplelogin=1 zonder token)
+ *           en na een succesvolle POST (e-mail verstuurd)
+ *   false — bij alle fout- en tokensituaties: alleen de melding tonen
+ *
  * Gebruikt state properties van Simplelogin:
  *   $this->statusMessage, $this->statusType, $this->autoSubmit,
  *   $this->redirectUrl, $this->showLoginForm, $this->postLogin,
@@ -35,7 +40,8 @@ use Joomla\CMS\User\UserFactoryInterface;
  *               generateToken(), consumeToken(), cleanup(),
  *               isAccountActivated(), setError(), finishTokenError(),
  *               redirectWithMessage(), loadPluginLanguage(),
- *               resolveStatusMessage(), loadTokenRow()
+ *               resolveStatusMessage(), loadTokenRow(),
+ *               deleteUnactivatedUser()
  */
 trait LoginFlowTrait
 {
@@ -194,7 +200,8 @@ trait LoginFlowTrait
         }
 
         // -----------------------------------------------------------------------
-        // Default: login startscherm
+        // Default: login startscherm — enige plek buiten succesvolle POST
+        // waar showLoginForm bewust op true staat
         // -----------------------------------------------------------------------
         $this->showLoginScreen();
     }
@@ -288,7 +295,8 @@ trait LoginFlowTrait
 
     /**
      * Login-form POST handler.
-     * Blokkeert en logt verdachte requests v��r rate limiting.
+     * Bij fouten: alleen melding tonen, geen invulveld.
+     * Bij succes (e-mail verstuurd): melding + invulveld tonen.
      */
     private function handlePost(): void
     {
@@ -301,7 +309,6 @@ trait LoginFlowTrait
 
         if (!$app->getSession()->checkToken()) {
             $this->setError(Text::_('PLG_SYSTEM_SIMPLELOGIN_SESSION_EXPIRED'));
-            $this->showLoginForm = true;
             $this->redirectWithMessage();
             return;
         }
@@ -313,7 +320,6 @@ trait LoginFlowTrait
         if (!$this->isValidEmail($email)) {
             $this->log(null, 'login_attempt_unknown', null, $email);
             $this->setError(Text::_('PLG_SYSTEM_SIMPLELOGIN_ERR_INVALID_EMAIL'));
-            $this->showLoginForm = true;
             return;
         }
 
@@ -347,11 +353,16 @@ trait LoginFlowTrait
         );
 
         $this->sendLoginLink($userId);
+
+        // Succesvolle POST: invulveld wél tonen zodat gebruiker opnieuw kan aanvragen
+        $this->showLoginForm = true;
         $this->redirectWithMessage();
     }
 
     /**
      * Token flow: bepaalt het type (invite / login) en routeert verder.
+     * Vangt verlopen invite-tokens af en ruimt het bijbehorende niet-geactiveerde
+     * account direct op via deleteUnactivatedUser().
      */
     private function handleTokenFlow(string $selector, string $validator): void
     {
@@ -383,7 +394,7 @@ trait LoginFlowTrait
             return;
         }
 
-        // used / expired checks � met type-bewust foutbericht
+        // used check
         if ((int) $row->used === 1) {
             $this->log((int) $row->user_id, $isInvite ? 'invite_already_used' : 'token_reused', $loginId);
             $this->finishTokenError(Text::_(
@@ -394,11 +405,18 @@ trait LoginFlowTrait
             return;
         }
 
+        // expired check — bij invite: account direct opruimen zodat
+        // de gebruiker meteen opnieuw kan registreren
         if (!empty($row->expires) && strtotime($row->expires) < time()) {
             $this->log((int) $row->user_id, $isInvite ? 'invite_expired' : 'token_expired', $loginId);
+
+            if ($isInvite) {
+                $this->deleteUnactivatedUser((int) $row->user_id, $loginId);
+            }
+
             $this->finishTokenError(Text::_(
                 $isInvite
-                    ? 'PLG_SYSTEM_SIMPLELOGIN_INVITE_EXPIRED'
+                    ? 'PLG_SYSTEM_SIMPLELOGIN_INVITE_EXPIRED_REGISTER_AGAIN'
                     : 'PLG_SYSTEM_SIMPLELOGIN_TOKEN_EXPIRED'
             ));
             return;
@@ -609,7 +627,8 @@ trait LoginFlowTrait
     // ===========================================================================
 
     /**
-     * Toont het login-scherm (fallback state).
+     * Toont het login-scherm (startscherm — één van de twee gevallen
+     * waarbij showLoginForm bewust op true staat).
      */
     private function showLoginScreen(): void
     {
