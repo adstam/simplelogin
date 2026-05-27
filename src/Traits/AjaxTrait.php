@@ -1,4 +1,11 @@
 <?php
+/**
+ * @package   Simplelogin
+ * @author    Ad Stam
+ * @copyright Copyright (C) 2026 Ad Stam. All rights reserved.
+ * @license   GNU General Public License version 2 or later; see LICENSE.txt
+ * @link      https://demo.adstam.nl
+ */
 
 namespace Adstam\Plugin\System\Simplelogin\Traits;
 
@@ -100,8 +107,9 @@ trait AjaxTrait
      */
     private function ajaxGetLogRows(): array
     {
-        if ($denied = $this->assertPluginManageAccess()) {
-            return $denied;
+        $denied = $this->assertPluginManageAccess();
+            if ($denied !== null) {
+                return $denied;
         }
 
         $type = preg_replace(
@@ -125,8 +133,9 @@ trait AjaxTrait
      */
     private function ajaxPurgeLogRows(): array
     {
-        if ($denied = $this->assertPluginManageAccess()) {
-            return $denied;
+        $denied = $this->assertPluginManageAccess();
+            if ($denied !== null) {
+                return $denied;
         }
 
         $type = preg_replace(
@@ -163,8 +172,9 @@ trait AjaxTrait
      */
     private function ajaxExportLog(): array
     {
-        if ($denied = $this->assertPluginManageAccess()) {
-            return $denied;
+        $denied = $this->assertPluginManageAccess();
+            if ($denied !== null) {
+                return $denied;
         }
 
         $db  = Factory::getDbo();

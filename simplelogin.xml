@@ -1,20 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <extension type="plugin" group="system" method="upgrade">
-    <name>Simplelogin</name>
+    <name>System - Simplelogin</name>
     <author>Ad Stam</author>
-    <version>1.0.0</version>
+		<authorEmail>info@adstam.nl</authorEmail>
+		<authorUrl>https://demo.adstam.nl</authorUrl>
+    <version>1.0.1</version>
     <creationDate>2026-04-23</creationDate>
     <copyright>Copyright (C) 2026 Ad Stam. All rights reserved.</copyright>
     <license>GNU General Public License version 2 or later</license>
-    <description><![CDATA[<p>This extension was designed by Ad Stam. The coding was largely done using AI</p><p>Simple Login enables passwordless login via an email link.</p><p><a href=\"https://demo.adstam.nl\" target=\"_blank\">demo.adstam.nl</a>]]></description>
+    <description><![CDATA[<p>This extension was designed by Ad Stam.</p><p>Simple Login enables passwordless login via an email link.</p><p><a href=\"https://demo.adstam.nl\" target=\"_blank\">demo.adstam.nl</a>]]></description>
 
-    <namespace path="src" allowoverride="true">Adstam\Plugin\System\Simplelogin</namespace>
+    <namespace path="src">Adstam\Plugin\System\Simplelogin</namespace>
     <scriptfile>script.php</scriptfile>
 
-    <files>
+    <files> 
+		    <folder plugin="simplelogin">src</folder>
         <folder>language</folder>
         <folder>services</folder>
-        <folder plugin="simplelogin">src</folder>
         <filename>script.php</filename>
         <folder>layouts</folder>
         <folder>sql</folder>
@@ -23,10 +25,6 @@
     <media destination="plg_system_simplelogin" folder="media">
         <folder>js</folder>
     </media>
-
-    <services>
-        <provider>services/provider.php</provider>
-    </services>
 
     <install>
         <sql>

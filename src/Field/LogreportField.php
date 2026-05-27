@@ -1,4 +1,11 @@
 <?php
+/**
+ * @package   Simplelogin
+ * @author    Ad Stam
+ * @copyright Copyright (C) 2026 Ad Stam. All rights reserved.
+ * @license   GNU General Public License version 2 or later; see LICENSE.txt
+ * @link      https://demo.adstam.nl
+ */
 namespace Adstam\Plugin\System\Simplelogin\Field;
 defined('_JEXEC') or die;
 use Joomla\CMS\Factory;
@@ -13,9 +20,7 @@ class LogReportField extends FormField
 
     protected function getInput()
     {
-        $type = isset($_GET['simplelogin_log_type'])
-            ? preg_replace('/[^a-zA-Z0-9_*]/', '', $_GET['simplelogin_log_type'])
-            : '';
+        $type = Factory::getApplication()->input->get('simplelogin_log_type', '', 'CMD');
         $rows  = ReportHelper::getLogRows($type);
         $types = ReportHelper::getLogTypes();
 
