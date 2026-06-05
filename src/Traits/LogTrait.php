@@ -111,7 +111,7 @@ trait LogTrait
             Log::add(
                 'Simplelogin log insert failed: ' . $e->getMessage(),
                 Log::ERROR,
-                ['simplelogin']
+                'simplelogin'
             );
         }
 
