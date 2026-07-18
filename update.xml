@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<updates>
+	<update>
+		<name>PLG - Simplelogin</name>
+		<description>Plugin that provides a safe link to login</description>
+		<element>simplelogin</element>
+		<type>plugin</type>
+		<version>1.0.6692</version>
+		<client>site</client>
+		<folder>system</folder>
+		<downloads>
+			<downloadurl type="full" format="zip">https://raw.githubusercontent.com/adstam/simplelogin/main/simplelogin.zip</downloadurl>
+		</downloads>
+		<sha256>8e7780461a0809b823359456c449a9e526c03f5360808b143993ef875dc0d695</sha256>
+		<targetplatform name="joomla" version="[56].[1234]" />
+		<php_minimum>8.1</php_minimum>
+	</update>
+</updates>
