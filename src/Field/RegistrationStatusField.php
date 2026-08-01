@@ -29,9 +29,9 @@ use Joomla\CMS\Form\FormField;
  * configuratie gelezen (nooit uit een eerder opgeslagen plugin-parameter) --
  * filter="unset" op het XML-veld zorgt dat er ook niets van wordt opgeslagen.
  */
-class RegistrationStatusField extends FormField
+class RegistrationstatusField extends FormField
 {
-    protected $type = 'RegistrationStatus';
+    protected $type = 'Registrationstatus';
 
     protected function getInput(): string
     {
