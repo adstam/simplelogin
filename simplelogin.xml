@@ -4,7 +4,7 @@
     <author>Ad Stam</author>
     <authorEmail>info@adstam.nl</authorEmail>
     <authorUrl>https://demo.adstam.nl</authorUrl>
-    <version>1.1.04</version>
+    <version>1.1.05</version>
     <creationDate>02-08-2026</creationDate>
     <copyright>Copyright (C) 2026 Ad Stam. All rights reserved.</copyright>
     <license>GNU General Public License version 2 or later</license>
@@ -83,6 +83,11 @@
 					   class="alert alert-info"
 					   label="PLG_SYSTEM_SIMPLELOGIN_NO_SIMPLELOGIN_REGISTRATION"
 					   showon="allow_password_login:1" />
+				<field name="no_self_registration"
+					   type="note"
+					   class="alert alert-info"
+					   label="PLG_SYSTEM_SIMPLELOGIN_USERREGISTRATION"
+					   showon="allow_password_login:0" />
                 <field name="require_admin_approval"
                        type="radio"
                        label="PLG_SYSTEM_SIMPLELOGIN_REQUIRE_ADMIN_APPROVAL_LABEL"
