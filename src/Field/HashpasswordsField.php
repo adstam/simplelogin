@@ -20,10 +20,9 @@ class HashpasswordsField extends FormField
 {
     protected $type = 'Hashpasswords';
 
-    public function getLabel(): string
-    {
-        return '';
-    }
+//    public function getLabel(): string
+//        return '';
+//    }
 
     protected function getInput(): string
     {
@@ -49,7 +48,7 @@ class HashpasswordsField extends FormField
 
         HTMLHelper::_('script', 'plg_system_simplelogin/hashpasswords.js', ['relative' => true, 'version' => 'auto']);
 
-        $btnLabel = Text::_('PLG_SYSTEM_SIMPLELOGIN_HASH_BUTTON');
+        $btnLabel = Text::_('PLG_SYSTEM_SIMPLELOGIN_BULK_HASH_BUTTON');
 
         return <<<HTML
             <button type="button" class="btn btn-danger simplelogin-hash-btn">

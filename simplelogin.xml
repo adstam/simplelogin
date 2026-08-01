@@ -2,19 +2,19 @@
 <extension type="plugin" group="system" method="upgrade">
     <name>System - Simplelogin</name>
     <author>Ad Stam</author>
-		<authorEmail>info@adstam.nl</authorEmail>
-		<authorUrl>https://demo.adstam.nl</authorUrl>
-    <version>1.0.6692</version>
-    <creationdate>18-07-2026</creationdate>
+    <authorEmail>info@adstam.nl</authorEmail>
+    <authorUrl>https://demo.adstam.nl</authorUrl>
+    <version>1.1.0</version>
+    <creationDate>01-08-2026</creationDate>
     <copyright>Copyright (C) 2026 Ad Stam. All rights reserved.</copyright>
     <license>GNU General Public License version 2 or later</license>
-    <description><![CDATA[<p>This extension was designed by Ad Stam.</p><p>Simple Login enables passwordless login via an email link.</p><p><a href="https://demo.adstam.nl" target="_blank">demo.adstam.nl</a>]]></description>
+    <description><![CDATA[PLG_SYSTEM_SIMPLELOGIN_DESCRIPTION]]></description>
 
     <namespace path="src">StamPlusJ\Plugin\System\Simplelogin</namespace>
     <scriptfile>script.php</scriptfile>
 
-    <files> 
-		    <folder plugin="simplelogin">src</folder>
+    <files>
+        <folder plugin="simplelogin">src</folder>
         <folder>language</folder>
         <folder>services</folder>
         <filename>script.php</filename>
@@ -31,7 +31,6 @@
             <file driver="mysql" charset="utf8">sql/install.mysql.utf8.sql</file>
         </sql>
     </install>
-
     <uninstall>
         <sql>
             <file driver="mysql" charset="utf8">sql/uninstall.mysql.utf8.sql</file>
@@ -40,228 +39,287 @@
 
     <config>
         <fields name="params" addfieldprefix="StamPlusJ\Plugin\System\Simplelogin\Field">
-
-            <fieldset name="general" label="PLG_SYSTEM_SIMPLELOGIN_FIELDSET_GENERAL">
-
+            <fieldset name="general" label="PLG_SYSTEM_SIMPLELOGIN_FIELDSET_LOGIN_SETTINGS">
                 <field name="landing_page_option"
                        type="radio"
                        label="PLG_SYSTEM_SIMPLELOGIN_LANDING_PAGE_OPTION_LABEL"
                        default="homepage"
-											 description="PLG_SYSTEM_SIMPLELOGIN_LANDING_PAGE_OPTION_LABEL_DESCRIPTION">
-
+                       description="PLG_SYSTEM_SIMPLELOGIN_LANDING_PAGE_OPTION_LABEL_DESCRIPTION">
                     <option value="homepage">PLG_SYSTEM_SIMPLELOGIN_OPTION_HOMEPAGE</option>
                     <option value="custom">PLG_SYSTEM_SIMPLELOGIN_OPTION_CUSTOM</option>
                 </field>
-
-                <field name="landing_itemid"
-                       type="menuitem"
-                       label="PLG_SYSTEM_SIMPLELOGIN_LANDING_ITEMID_LABEL"
-                       showon="landing_page_option:custom" />
-
+                <field name="landing_itemid" type="menuitem" label="PLG_SYSTEM_SIMPLELOGIN_LANDING_ITEMID_LABEL" showon="landing_page_option:custom" />
                 <field name="allow_password_login"
                        type="radio"
                        label="PLG_SYSTEM_SIMPLELOGIN_ALLOW_PASSWORD_LOGIN_LABEL"
                        default="0"
-											 description="PLG_SYSTEM_SIMPLELOGIN_ALLOW_PASSWORD_LOGIN_DESCRIPTION">
-
+                       description="PLG_SYSTEM_SIMPLELOGIN_ALLOW_PASSWORD_LOGIN_DESCRIPTION">
                     <option value="0">PLG_SYSTEM_SIMPLELOGIN_OPTION_NO</option>
                     <option value="1">PLG_SYSTEM_SIMPLELOGIN_OPTION_YES</option>
                 </field>
-
                 <field name="bulk_hash_passwords"
                        type="hashpasswords"
-                       label="PLG_SYSTEM_SIMPLELOGIN_BULK_HASH_PASSWORDS_LABEL"
+                       label="PLG_SYSTEM_SIMPLELOGIN_BULK_HASH_LABEL"
                        description="PLG_SYSTEM_SIMPLELOGIN_BULK_HASH_PASSWORDS_DESC"
                        showon="allow_password_login:0"/>
+
+                <!--
+                    Verborgen "helper"-veld: leest com_users' allowUserRegistration
+                    server-side uit en zet die als lokale, echte formulierwaarde neer.
+                    LET OP: showon op een <fieldset> bleek in de praktijk niet te
+                    werken (getest, bevestigd) — dit veld wordt daarom NIET gebruikt
+                    voor fieldset-showon, maar rechtstreeks op elk afzonderlijk
+                    registratie-gerelateerd veld hieronder, precies zoals
+                    allow_password_login dat ook al per veld deed.
+                    filter="unset" zorgt dat er niets van wordt opgeslagen — de
+                    waarde wordt bij elke paginaload vers herberekend.
+                -->
+                <field name="registration_enabled" type="registrationstatus" label="" filter="unset" />
             </fieldset>
 
-            <fieldset name="loginmail" label="PLG_SYSTEM_SIMPLELOGIN_FIELDSET_LOGINMAIL">
-
-                <field name="mail_login_subject"
-                       type="text"
-                       label="PLG_SYSTEM_SIMPLELOGIN_FIELD_LOGINMAIL_SUBJECT_LABEL"
-                       default="Here's your login link" />
-
-                <field name="mail_login_body"
-                       type="textarea"
-                       label="PLG_SYSTEM_SIMPLELOGIN_FIELD_LOGINMAIL_BODY_LABEL"
-                       description="PLG_SYSTEM_SIMPLELOGIN_FIELD_LOGINMAIL_BODY_DESC"
-											 default="#name, &#13;&#10;&#13;&#10;Here's your link to login: &#13;&#10;#link &#13;&#10;&#13;&#10;Please note that the link is valid for #expiry minutes."
-                       filter="raw"
-                       rows="10"
-                       cols="60"/>
-            </fieldset>
-
-            <fieldset name="invitemail" label="PLG_SYSTEM_SIMPLELOGIN_FIELDSET_INVITEMAIL">
-
-                <field name="mail_invite_subject"
-                       type="text"
-                       label="PLG_SYSTEM_SIMPLELOGIN_FIELD_INVITEMAIL_SUBJECT_LABEL"
-                       default="Your confirmation link" />
-
-                <field name="mail_invite_body"
-                       type="textarea"
-                       label="PLG_SYSTEM_SIMPLELOGIN_FIELD_INVITEMAIL_BODY_LABEL"
-											 default="#name, &#13;&#10;&#13;&#10;Here's your link to confirm you registration: &#13;&#10;#link &#13;&#10;&#13;&#10;Please note that the link is valid for #expiry minutes."
-                       description="PLG_SYSTEM_SIMPLELOGIN_FIELD_INVITEMAIL_BODY_DESC"
-                       filter="raw"
-											 rows="10"
-                       cols="60"/>
-            </fieldset>
-
-            <fieldset name="registration" label="PLG_SYSTEM_SIMPLELOGIN_FIELDSET_REGISTRATION">
-
+            <fieldset name="approvalinformation" label="PLG_SYSTEM_SIMPLELOGIN_FIELDSET_APPROVAL">
+				<field name="no_simplelogin_registration"
+					   type="note"
+					   class="alert alert-info"
+					   label="PLG_SYSTEM_SIMPLELOGIN_NO_SIMPLELOGIN_REGISTRATION"
+					   showon="allow_password_login:1" />
                 <field name="require_admin_approval"
                        type="radio"
                        label="PLG_SYSTEM_SIMPLELOGIN_REQUIRE_ADMIN_APPROVAL_LABEL"
                        description="PLG_SYSTEM_SIMPLELOGIN_REQUIRE_ADMIN_APPROVAL_DESC"
-                       default="0">
+                       default="0"
+					   showon="registration_enabled:1[AND]allow_password_login:0">
                     <option value="0">PLG_SYSTEM_SIMPLELOGIN_OPTION_NO</option>
                     <option value="1">PLG_SYSTEM_SIMPLELOGIN_OPTION_YES</option>
                 </field>
-
                 <field name="notify_admin_registration"
                        type="radio"
                        label="PLG_SYSTEM_SIMPLELOGIN_NOTIFY_ADMIN_REGISTRATION_LABEL"
                        description="PLG_SYSTEM_SIMPLELOGIN_NOTIFY_ADMIN_REGISTRATION_DESC"
-                       default="0">
+                       default="0"
+					   showon="registration_enabled:1[AND]allow_password_login:0">
                     <option value="0">PLG_SYSTEM_SIMPLELOGIN_OPTION_NO</option>
                     <option value="1">PLG_SYSTEM_SIMPLELOGIN_OPTION_YES</option>
+                </field>
+                <field name="approval_report" type="approvalreport" label="PLG_SYSTEM_SIMPLELOGIN_APPROVAL_REPORT_LABEL" description="PLG_SYSTEM_SIMPLELOGIN_APPROVAL_REPORT_DESC" showon="registration_enabled:1[AND]require_admin_approval:1[AND]allow_password_login:0" />
+            </fieldset>
+
+            <fieldset name="mail_instellingen" label="PLG_SYSTEM_SIMPLELOGIN_FIELDSET_MAIL_SETUP" description="PLG_SYSTEM_SIMPLELOGIN_FIELDSET_MAIL_SETUP_DESCRIPTION">
+                <field name="mail_format"
+                       type="radio"
+                       label="PLG_SYSTEM_SIMPLELOGIN_MAIL_FORMAT_LABEL"
+                       default="html"
+                       description="PLG_SYSTEM_SIMPLELOGIN_MAIL_FORMAT_DESCRIPTION">
+                    <option value="text">PLG_SYSTEM_SIMPLELOGIN_MAIL_FORMAT_TEXT</option>
+                    <option value="html">PLG_SYSTEM_SIMPLELOGIN_MAIL_FORMAT_HTML</option>
+                </field>
+
+                <!-- LOGIN MAIL (altijd relevant, onafhankelijk van registratie) -->
+                <field name="show_login_mail"
+                       type="radio"
+                       label="PLG_SYSTEM_SIMPLELOGIN_SHOW_LOGIN_MAIL"
+                       default="0"
+                       layout="joomla.form.field.radio.switcher">
+                    <option value="0">PLG_SYSTEM_SIMPLELOGIN_SHOW_LOGIN_MAIL_NO</option>
+                    <option value="1">PLG_SYSTEM_SIMPLELOGIN_SHOW_LOGIN_MAIL_YES</option>
+                </field>
+
+                <field name="mail_login_subject" type="text" label="PLG_SYSTEM_SIMPLELOGIN_FIELD_LOGINMAIL_SUBJECT_LABEL" default="Here's your login link" showon="show_login_mail:1"/>
+                <field name="mail_login_body"
+                       type="textarea"
+                       label="PLG_SYSTEM_SIMPLELOGIN_FIELD_LOGINMAIL_BODY_LABEL"
+                       description="PLG_SYSTEM_SIMPLELOGIN_FIELD_LOGINMAIL_BODY_DESC"
+                       default="#name,&#13;&#10;&#13;&#10;Here's your link to login:&#13;&#10;#link&#13;&#10;&#13;&#10;Please note that the link is valid for #expiry minutes."
+                       filter="raw"
+                       rows="10"
+                       cols="60"
+                       showon="mail_format:text[AND]show_login_mail:1"/>
+                <field name="mail_login_body_html"
+                       type="editor"
+                       label="PLG_SYSTEM_SIMPLELOGIN_FIELD_LOGINMAIL_BODY_HTML_LABEL"
+                       description="PLG_SYSTEM_SIMPLELOGIN_FIELD_LOGINMAIL_BODY_HTML_DESC"
+                       filter="safehtml"
+                       rows="10"
+                       cols="60"
+                       buttons="true"
+                       showon="mail_format:html[AND]show_login_mail:1">
+                    <default><![CDATA[<p>#name,</p><p>Here's your link to login:<br><br><a href="#link">Click here to login</a></p><p>Please note that the link is valid for #expiry minutes.</p>]]></default>
+                </field>
+
+                <!-- INVITE MAIL (alleen relevant als registratie mogelijk is) -->
+                <field name="show_invite_mail"
+                       type="radio"
+                       label="PLG_SYSTEM_SIMPLELOGIN_SHOW_INVITE_MAIL"
+                       default="0"
+                       layout="joomla.form.field.radio.switcher"
+                       showon="registration_enabled:1[AND]allow_password_login:0">
+                    <option value="0">PLG_SYSTEM_SIMPLELOGIN_SHOW_INVITE_MAIL_NO</option>
+                    <option value="1">PLG_SYSTEM_SIMPLELOGIN_SHOW_INVITE_MAIL_YES</option>
+                </field>
+
+                <field name="mail_invite_subject"
+                       type="text"
+                       label="PLG_SYSTEM_SIMPLELOGIN_FIELD_INVITEMAIL_SUBJECT_LABEL"
+                       default="Your confirmation link"
+                       showon="registration_enabled:1[AND]allow_password_login:0[AND]show_invite_mail:1"/>
+                <field name="mail_invite_body"
+                       type="textarea"
+                       label="PLG_SYSTEM_SIMPLELOGIN_FIELD_INVITEMAIL_BODY_LABEL"
+                       description="PLG_SYSTEM_SIMPLELOGIN_FIELD_INVITEMAIL_BODY_DESC"
+                       default="#name,&#13;&#10;&#13;&#10;Here's your link to confirm your registration:&#13;&#10;#link&#13;&#10;&#13;&#10;Please note that the link is valid for #expiry minutes."
+                       filter="raw"
+                       rows="10"
+                       cols="60"
+                       showon="registration_enabled:1[AND]mail_format:text[AND]show_invite_mail:1[AND]allow_password_login:0"/>
+                <field name="mail_invite_body_html"
+                       type="editor"
+                       label="PLG_SYSTEM_SIMPLELOGIN_FIELD_INVITEMAIL_BODY_HTML_LABEL"
+                       description="PLG_SYSTEM_SIMPLELOGIN_FIELD_INVITEMAIL_BODY_HTML_DESC"
+                       filter="safehtml"
+                       rows="10"
+                       cols="60"
+                       buttons="true"
+                       showon="registration_enabled:1[AND]mail_format:html[AND]show_invite_mail:1[AND]allow_password_login:0">
+                    <default><![CDATA[<p>#name,</p><p>Here's your link to confirm your registration:<br><br><a href="#link">Click here to confirm your account</a></p><p>Please note that the link is valid for #expiry minutes.</p>]]></default>
+                </field>
+
+                <!-- ADMIN MAIL (alleen relevant als registratie mogelijk is) -->
+                <field name="show_admin_mail"
+                       type="radio"
+                       label="PLG_SYSTEM_SIMPLELOGIN_SHOW_ADMIN_MAIL"
+                       default="0"
+                       layout="joomla.form.field.radio.switcher"
+                       showon="registration_enabled:1[AND]notify_admin_registration:1[AND]allow_password_login:0">
+                    <option value="0">PLG_SYSTEM_SIMPLELOGIN_SHOW_ADMIN_MAIL_NO</option>
+                    <option value="1">PLG_SYSTEM_SIMPLELOGIN_SHOW_ADMIN_MAIL_YES</option>
                 </field>
 
                 <field name="mail_admin_subject"
                        type="text"
                        label="PLG_SYSTEM_SIMPLELOGIN_MAIL_ADMIN_SUBJECT_LABEL"
                        default="New registration on #sitename"
-                       showon="notify_admin_registration:1"/>
-
+                       showon="registration_enabled:1[AND]notify_admin_registration:1[AND]show_admin_mail:1[AND]allow_password_login:0"/>
                 <field name="mail_admin_body"
                        type="textarea"
                        label="PLG_SYSTEM_SIMPLELOGIN_MAIL_ADMIN_BODY_LABEL"
                        description="PLG_SYSTEM_SIMPLELOGIN_MAIL_ADMIN_BODY_DESC"
-                       default="#name (#email) has registered on #sitename.&#13;&#10;Manage users: #adminlink"
+                       default="#name (#email) has registered on #sitename.&#13;&#10;If admin approval is needed goto to the plugin and decide your action for this new user."
                        filter="raw"
                        rows="8"
                        cols="60"
-                       showon="notify_admin_registration:1"/>
-					   
-				<field name="approval_report"
-					   type="approvalreport"
-					   label="PLG_SYSTEM_SIMPLELOGIN_APPROVAL_REPORT_LABEL"
-					   description="PLG_SYSTEM_SIMPLELOGIN_APPROVAL_REPORT_DESC" />
-					   
-				<field name="mail_approval_subject"
-					   type="text"
-					   label="PLG_SYSTEM_SIMPLELOGIN_MAIL_APPROVAL_SUBJECT_LABEL"
-					   default="Your registration has been approved"
-					   showon="require_admin_approval:1"/>
+                       showon="registration_enabled:1[AND]notify_admin_registration:1[AND]mail_format:text[AND]show_admin_mail:1[AND]allow_password_login:0"/>
+                <field name="mail_admin_body_html"
+                       type="editor"
+                       label="PLG_SYSTEM_SIMPLELOGIN_MAIL_ADMIN_BODY_HTML_LABEL"
+                       description="PLG_SYSTEM_SIMPLELOGIN_MAIL_ADMIN_BODY_HTML_DESC"
+                       filter="safehtml"
+                       rows="8"
+                       cols="60"
+                       buttons="true"
+                       showon="registration_enabled:1[AND]notify_admin_registration:1[AND]mail_format:html[AND]show_admin_mail:1[AND]allow_password_login:0">
+                    <default><![CDATA[<p>#name (#email) has registered on #sitename.</p><p>If admin approval is needed goto to the plugin and decide your action for this new user.</p>]]></default>
+                </field>
 
-				<field name="mail_approval_body"
-					   type="textarea"
-					   label="PLG_SYSTEM_SIMPLELOGIN_MAIL_APPROVAL_BODY_LABEL"
-					   description="PLG_SYSTEM_SIMPLELOGIN_MAIL_APPROVAL_BODY_DESC"
-					   default="#name,&#13;&#10;&#13;&#10;Your registration has been approved. You can now login here:&#13;&#10;#link&#13;&#10;&#13;&#10;This link will allow you to request a login link."
-					   filter="raw"
-					   rows="8"
-					   cols="60"
-					   showon="require_admin_approval:1"/>
+                <!-- APPROVAL MAIL (alleen relevant als registratie mogelijk is) -->
+                <field name="show_approval_mail"
+                       type="radio"
+                       label="PLG_SYSTEM_SIMPLELOGIN_SHOW_APPROVAL_MAIL"
+                       default="0"
+                       layout="joomla.form.field.radio.switcher"
+                       showon="registration_enabled:1[AND]require_admin_approval:1[AND]allow_password_login:0">
+                    <option value="0">PLG_SYSTEM_SIMPLELOGIN_SHOW_APPROVAL_MAIL_NO</option>
+                    <option value="1">PLG_SYSTEM_SIMPLELOGIN_SHOW_APPROVAL_MAIL_YES</option>
+                </field>
 
-				<field name="mail_rejection_subject"
-					   type="text"
-					   label="PLG_SYSTEM_SIMPLELOGIN_MAIL_REJECTION_SUBJECT_LABEL"
-					   default="Your registration has been rejected"
-					   showon="require_admin_approval:1"/>
+                <field name="mail_approval_subject"
+                       type="text"
+                       label="PLG_SYSTEM_SIMPLELOGIN_MAIL_APPROVAL_SUBJECT_LABEL"
+                       default="Your registration has been approved"
+                       showon="registration_enabled:1[AND]require_admin_approval:1[AND]show_approval_mail:1[AND]allow_password_login:0"/>
+                <field name="mail_approval_body"
+                       type="textarea"
+                       label="PLG_SYSTEM_SIMPLELOGIN_MAIL_APPROVAL_BODY_LABEL"
+                       description="PLG_SYSTEM_SIMPLELOGIN_MAIL_APPROVAL_BODY_DESC"
+                       default="#name,&#13;&#10;&#13;&#10;Your registration has been approved. You can now login here:&#13;&#10;#link&#13;&#10;&#13;&#10;This link is valid for #expiry minutes."
+                       filter="raw"
+                       rows="8"
+                       cols="60"
+                       showon="registration_enabled:1[AND]require_admin_approval:1[AND]mail_format:text[AND]show_approval_mail:1[AND]allow_password_login:0"/>
+                <field name="mail_approval_body_html"
+                       type="editor"
+                       label="PLG_SYSTEM_SIMPLELOGIN_MAIL_APPROVAL_BODY_HTML_LABEL"
+                       description="PLG_SYSTEM_SIMPLELOGIN_MAIL_APPROVAL_BODY_HTML_DESC"
+                       filter="safehtml"
+                       rows="8"
+                       cols="60"
+                       buttons="true"
+                       showon="registration_enabled:1[AND]require_admin_approval:1[AND]mail_format:html[AND]show_approval_mail:1[AND]allow_password_login:0">
+                    <default><![CDATA[<p>#name,</p><p>Your registration has been approved. You can now login here:<br><br><a href="#link">Click here to login</a></p><p>This link is valid for #expiry minutes.</p>]]></default>
+                </field>
 
-				<field name="mail_rejection_body"
-					   type="textarea"
-					   label="PLG_SYSTEM_SIMPLELOGIN_MAIL_REJECTION_BODY_LABEL"
-					   description="PLG_SYSTEM_SIMPLELOGIN_MAIL_REJECTION_BODY_DESC"
-					   default="#name,&#13;&#10;&#13;&#10;Your registration has been rejected.&#13;&#10;&#13;&#10;Reason: #reason"
-					   filter="raw"
-					   rows="8"
-					   cols="60"
-					   showon="require_admin_approval:1"/>			   
+                <!-- REJECTION MAIL (alleen relevant als registratie mogelijk is) -->
+                <field name="show_rejection_mail"
+                       type="radio"
+                       label="PLG_SYSTEM_SIMPLELOGIN_SHOW_REJECTION_MAIL"
+                       default="0"
+                       layout="joomla.form.field.radio.switcher"
+                       showon="registration_enabled:1[AND]require_admin_approval:1[AND]allow_password_login:0">
+                    <option value="0">PLG_SYSTEM_SIMPLELOGIN_SHOW_REJECTION_MAIL_NO</option>
+                    <option value="1">PLG_SYSTEM_SIMPLELOGIN_SHOW_REJECTION_MAIL_YES</option>
+                </field>
 
+                <field name="mail_rejection_subject"
+                       type="text"
+                       label="PLG_SYSTEM_SIMPLELOGIN_MAIL_REJECTION_SUBJECT_LABEL"
+                       default="Your registration has been rejected"
+                       showon="registration_enabled:1[AND]require_admin_approval:1[AND]show_rejection_mail:1[AND]allow_password_login:0"/>
+                <field name="mail_rejection_body"
+                       type="textarea"
+                       label="PLG_SYSTEM_SIMPLELOGIN_MAIL_REJECTION_BODY_LABEL"
+                       description="PLG_SYSTEM_SIMPLELOGIN_MAIL_REJECTION_BODY_DESC"
+                       default="#name,&#13;&#10;&#13;&#10;Your registration has been rejected.&#13;&#10;&#13;&#10;Reason: #reason"
+                       filter="raw"
+                       rows="8"
+                       cols="60"
+                       showon="registration_enabled:1[AND]require_admin_approval:1[AND]mail_format:text[AND]show_rejection_mail:1[AND]allow_password_login:0"/>
+                <field name="mail_rejection_body_html"
+                       type="editor"
+                       label="PLG_SYSTEM_SIMPLELOGIN_MAIL_REJECTION_BODY_HTML_LABEL"
+                       description="PLG_SYSTEM_SIMPLELOGIN_MAIL_REJECTION_BODY_HTML_DESC"
+                       filter="safehtml"
+                       rows="8"
+                       cols="60"
+                       buttons="true"
+                       showon="registration_enabled:1[AND]require_admin_approval:1[AND]mail_format:html[AND]show_rejection_mail:1[AND]allow_password_login:0">
+                    <default><![CDATA[<p>#name,</p><p>Your registration has been rejected.</p><p>Reason: #reason</p>]]></default>
+                </field>
             </fieldset>
 
             <fieldset name="security" label="PLG_SYSTEM_SIMPLELOGIN_FIELDSET_SECURITY">
-
-                <field name="kopbasis"
-                       type="spacer"
-                       label="PLG_SYSTEM_SIMPLELOGIN_SECURITY_BASE_LIMITS" />
-
-                <field name="expiry_minutes"
-                       type="number"
-                       label="PLG_SYSTEM_SIMPLELOGIN_EXPIRY_MINUTES_LABEL"
-											 description="PLG_SYSTEM_SIMPLELOGIN_EXPIRY_MINUTES_DESCRIPTION"
-                       default="15" />
-
-                <field name="invite_expiry_minutes"
-                       type="number"
-                       label="PLG_SYSTEM_SIMPLELOGIN_INVITE_EXPIRY_MINUTES_LABEL"
-                       default="30"
-											 description="PLG_SYSTEM_SIMPLELOGIN_INVITE_EXPIRY_MINUTES_DESCRIPTION" />
-
-                <field name="request_cooldown_seconds"
-                       type="number"
-                       label="PLG_SYSTEM_SIMPLELOGIN_REQUEST_COOLDOWN_SECONDS_LABEL"
-                       default="30"
-											 description="PLG_SYSTEM_SIMPLELOGIN_REQUEST_COOLDOWN_SECONDS_DESCRIPTION" />
-
-                <field name="kopratelimit"
-                       type="spacer"
-                       label="PLG_SYSTEM_SIMPLELOGIN_SECURITY_RATE_LIMITS" />
-
-                <field name="rate_limit_ip_max"
-                       type="number"
-                       label="PLG_SYSTEM_SIMPLELOGIN_RATE_LIMIT_IP_MAX_LABEL"
-                       default="10"
-											 description="PLG_SYSTEM_SIMPLELOGIN_RATE_LIMIT_IP_MAX_DESCRIPTION" />
-
-                <field name="rate_limit_ip_window"
-                       type="number"
-                       label="PLG_SYSTEM_SIMPLELOGIN_RATE_LIMIT_IP_WINDOW_LABEL"
-                       default="5" />
-
-                <field name="rate_limit_user_max"
-                       type="number"
-                       label="PLG_SYSTEM_SIMPLELOGIN_RATE_LIMIT_USER_MAX_LABEL"
-                       default="5"
-											 description="PLG_SYSTEM_SIMPLELOGIN_RATE_LIMIT_USER_MAX_DESCRIPTION"/>
-
-                <field name="rate_limit_user_window"
-                       type="number"
-                       label="PLG_SYSTEM_SIMPLELOGIN_RATE_LIMIT_USER_WINDOW_LABEL"
-                       default="10" />
+                <field name="kopbasis" type="spacer" label="PLG_SYSTEM_SIMPLELOGIN_SECURITY_BASE_LIMITS" />
+                <field name="expiry_minutes" type="number" label="PLG_SYSTEM_SIMPLELOGIN_EXPIRY_MINUTES_LABEL" description="PLG_SYSTEM_SIMPLELOGIN_EXPIRY_MINUTES_DESCRIPTION" default="15" />
+                <field name="invite_expiry_minutes" type="number" label="PLG_SYSTEM_SIMPLELOGIN_INVITE_EXPIRY_MINUTES_LABEL" default="30" description="PLG_SYSTEM_SIMPLELOGIN_INVITE_EXPIRY_MINUTES_DESCRIPTION" />
+                <field name="request_cooldown_seconds" type="number" label="PLG_SYSTEM_SIMPLELOGIN_REQUEST_COOLDOWN_SECONDS_LABEL" default="30" description="PLG_SYSTEM_SIMPLELOGIN_REQUEST_COOLDOWN_SECONDS_DESCRIPTION" />
+                <field name="kopratelimit" type="spacer" label="PLG_SYSTEM_SIMPLELOGIN_SECURITY_RATE_LIMITS" />
+                <field name="rate_limit_ip_max" type="number" label="PLG_SYSTEM_SIMPLELOGIN_RATE_LIMIT_IP_MAX_LABEL" default="10" description="PLG_SYSTEM_SIMPLELOGIN_RATE_LIMIT_IP_MAX_DESCRIPTION" />
+                <field name="rate_limit_ip_window" type="number" label="PLG_SYSTEM_SIMPLELOGIN_RATE_LIMIT_IP_WINDOW_LABEL" default="5" />
+                <field name="rate_limit_user_max" type="number" label="PLG_SYSTEM_SIMPLELOGIN_RATE_LIMIT_USER_MAX_LABEL" default="5" description="PLG_SYSTEM_SIMPLELOGIN_RATE_LIMIT_USER_MAX_DESCRIPTION"/>
+                <field name="rate_limit_user_window" type="number" label="PLG_SYSTEM_SIMPLELOGIN_RATE_LIMIT_USER_WINDOW_LABEL" default="10" />
             </fieldset>
 
             <fieldset name="throttle_report" label="PLG_SYSTEM_SIMPLELOGIN_FIELDSET_SESSIONS" description="PLG_SYSTEM_SIMPLELOGIN_FIELDSET_SESSIONS_DESCRIPTION">
-											 <field name="throttle_cleanup_time"
-                       				type="number"
-                       				label="PLG_SYSTEM_SIMPLELOGIN_THROTTLE_CLEANUP_TIME_VALUE"
-                       				default="60"
-															description="PLG_SYSTEM_SIMPLELOGIN_THROTTLE_CLEANUP_TIME_DESCRIPTION" />
-
-                <field name="throttle_report" type="throttlereport" label="" />
+                <field name="throttle_cleanup_time" type="number" label="PLG_SYSTEM_SIMPLELOGIN_THROTTLE_CLEANUP_TIME_VALUE" default="60" description="PLG_SYSTEM_SIMPLELOGIN_THROTTLE_CLEANUP_TIME_DESCRIPTION" />
+                <field name="throttle_report" type="throttlereport" label=""/>
             </fieldset>
 
             <fieldset name="log_report" label="PLG_SYSTEM_SIMPLELOGIN_FIELDSET_LOGGING" description="PLG_SYSTEM_SIMPLELOGIN_FIELDSET_LOGGING_DESCRIPTION">
-                <field name="log_export"
-											 type="exportlog"
-											 label=""/>
-                <field name="log_retention_days"
-                       type="number"
-                       label="PLG_SYSTEM_SIMPLELOGIN_LOG_CLEANUP_TIME_VALUE"
-                       default="30"
-                       description="PLG_SYSTEM_SIMPLELOGIN_LOG_CLEANUP_TIME_DESCRIPTION" />
-                <field name="log_report" type="logreport" label="" />
+                <field name="log_export" type="exportlog" label=""/>
+                <field name="log_retention_days" type="number" label="PLG_SYSTEM_SIMPLELOGIN_LOG_CLEANUP_TIME_VALUE" default="30" description="PLG_SYSTEM_SIMPLELOGIN_LOG_CLEANUP_TIME_DESCRIPTION" />
+                <field name="log_report" type="logreport" label=""/>
             </fieldset>
-
         </fields>
     </config>
-		<updateservers>
-    <server type="extension" priority="1" name="SimpleLogin Updates">
-        https://raw.githubusercontent.com/adstam/simplelogin/main/update.xml
-    </server>
-</updateservers>
+    <updateservers>
+        <server type="extension" priority="1" name="SimpleLogin Updates">https://raw.githubusercontent.com/adstam/simplelogin/main/update.xml</server>
+    </updateservers>
 </extension>

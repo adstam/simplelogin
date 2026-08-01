@@ -87,7 +87,6 @@ use Joomla\CMS\Session\Session;
                     return response.json();
                 })
                 .then(data => {
-                    // 👇 CORRECTE VERWERKING VAN JOOMLA 4/5 RESPONSE
                     if (data && data.success) {
                         row.remove();
                         Joomla.renderMessages({ success: [data.message || 'Gebruiker goedgekeurd'] });
@@ -106,18 +105,24 @@ use Joomla\CMS\Session\Session;
             });
         });
 
-        // Reject buttons (zelfde structuur)
+        // Reject buttons (met redeninvoer)
         document.querySelectorAll('.sl-reject-btn').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 var userId = this.dataset.userId;
                 if (!userId) return;
 
-                if (!confirm('<?= addslashes(Text::_('PLG_SYSTEM_SIMPLELOGIN_APPROVAL_CONFIRM_REJECT')) ?>')) {
+                var row = this.closest('tr');
+                var btn = this;
+
+                var reason = prompt('<?= addslashes(Text::_('PLG_SYSTEM_SIMPLELOGIN_APPROVAL_REJECT_REASON_PROMPT')) ?>');
+                if (reason === null) {
+                    return;
+                }
+                if (reason.trim() === '') {
+                    alert('<?= addslashes(Text::_('PLG_SYSTEM_SIMPLELOGIN_APPROVAL_REJECT_REASON_REQUIRED')) ?>');
                     return;
                 }
 
-                var row = this.closest('tr');
-                var btn = this;
                 btn.disabled = true;
                 btn.textContent = '...';
 
@@ -127,7 +132,8 @@ use Joomla\CMS\Session\Session;
                         'Content-Type': 'application/x-www-form-urlencoded',
                         'X-Requested-With': 'XMLHttpRequest'
                     },
-                    body: encodeURIComponent(token) + '=1&user_id=' + encodeURIComponent(userId)
+                    body: encodeURIComponent(token) + '=1&user_id=' + encodeURIComponent(userId) +
+                          '&reason=' + encodeURIComponent(reason)
                 })
                 .then(response => {
                     if (!response.ok) throw new Error('Network error');

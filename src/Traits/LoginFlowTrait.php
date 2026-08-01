@@ -16,6 +16,7 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
 use Joomla\CMS\User\UserFactoryInterface;
+use Joomla\Registry\Registry;
 
 /**
  * LoginFlowTrait
@@ -613,20 +614,24 @@ trait LoginFlowTrait
             . "index.php?simplelogin=1&selector={$selector}&validator={$validator}";
 
         // Use MailService to build and send the email
-        $body = $this->mailService->buildMailBody(
-            $this->params->get('mail_login_body', ''),
-            [
-                '#name'   => $user->name,
-                '#link'   => $loginLink,
-                '#expiry' => (string) $expiryMinutes,
-            ]
-        );
+		[$subject, $body, $isHtml] = $this->resolveMailTemplate('mail_login_subject', 'mail_login_body');
+		$this->mailService->sendMail(
+			$user->email,
+			$subject,
+			$body,
+			[
+				'#name'   => $user->name,
+				'#link'   => $loginLink,
+				'#expiry' => $expiryMinutes,
+			],
+			$isHtml
+		);
 
-        $this->mailService->sendMail(
-            $email,
-            $this->params->get('mail_login_subject', ''),
-            $body
-        );
+		foreach ($this->mailService->getLastImageErrors() as $error) {
+			$status = ($error['status'] === 'not_found') ? 'image_not_found' : 'image_too_large';
+			$this->log(null, $status, null, $error['url'] . ' | ' . $error['message']);
+		}
+
 
         $this->log($userId, 'link_sent');
 

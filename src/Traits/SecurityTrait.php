@@ -93,7 +93,7 @@ trait SecurityTrait
             ->extendWhere(
                 'AND',
                 [
-                    'ip = ' . $db->quote($this->getPackedIp()),
+                    'ip = UNHEX(' . $db->quote($this->getPackedIp()) . ')',
                     $userId !== null
                         ? 'user_id = ' . (int) $userId
                         : '1=0',
@@ -123,7 +123,7 @@ trait SecurityTrait
             $db->getQuery(true)
                 ->select('COUNT(*)')
                 ->from('#__simple_login_throttle')
-                ->where('ip = ' . $db->quote($this->getPackedIp()))
+                ->where('ip = UNHEX(' . $db->quote($this->getPackedIp()) . ')')
                 ->where('created > ' . $db->quote($since))
                 ->where('status IN (' . implode(',', $quotedStatuses) . ')')
         )->loadResult();
@@ -149,12 +149,18 @@ trait SecurityTrait
                 ->from('#__simple_login_throttle')
                 ->where('user_id = ' . (int) $userId)
                 ->where('created > ' . $db->quote($since))
-                ->where(
-                    'status IN (' .
-                    $db->quote('login_attempt_existing') . ',' .
-                    $db->quote('link_sent') .
-                    ')'
-                )
+                // LET OP: alleen 'login_attempt_existing' -- dat wordt precies één
+                // keer gelogd per daadwerkelijk ingediende aanvraag (handlePost()),
+                // vóórdat sendLoginLink() wordt aangeroepen. 'link_sent' hoorde hier
+                // eerder ook bij, maar sendLoginLink() logt die ZELF óók nog een
+                // keer voor diezelfde aanvraag -- dat telde elke geslaagde aanvraag
+                // dus dubbel, waardoor de limiet in de praktijk op de helft van de
+                // ingestelde waarde werd gehandhaafd. sendLoginLink() wordt ook
+                // vanuit de (eenmalige, token-verbruikende) invite-activatieflow
+                // aangeroepen zonder voorafgaande 'login_attempt_existing'-log; dat
+                // pad is al beschermd doordat een invite-token maar één keer
+                // bruikbaar is, dus hoeft hier niet apart meegeteld te worden.
+                ->where('status = ' . $db->quote('login_attempt_existing'))
         )->loadResult();
 
         return $count >= $limit;

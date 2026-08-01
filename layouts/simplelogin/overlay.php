@@ -11,6 +11,7 @@ defined('_JEXEC') or die;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
+use Joomla\CMS\Uri\Uri;
 
 $statusMessage = $displayData['statusMessage'] ?? '';
 $statusType    = $displayData['statusType'] ?? 'info';
@@ -37,6 +38,19 @@ if ($statusType === 'success') {
 } elseif ($statusType === 'info') {
     $bgColor = '#f8fafc';
 }
+
+// Data-attributen voor het gedeelde JS-bestand (autoSubmit / redirect).
+$overlayAttrs = [];
+
+if ($autoSubmit && $postLogin) {
+    $overlayAttrs[] = 'data-sl-autosubmit="1"';
+}
+
+if ($autoSubmit && !$postLogin && !empty($redirectUrl)) {
+    $overlayAttrs[] = 'data-sl-redirect="' . htmlspecialchars($redirectUrl) . '"';
+}
+
+$overlayAttrsHtml = $overlayAttrs ? ' ' . implode(' ', $overlayAttrs) : '';
 ?>
 
 <style>
@@ -209,12 +223,12 @@ if ($statusType === 'success') {
 }
 </style>
 
-<div id="simplelogin-overlay" class="sl-overlay">
+<div id="simplelogin-overlay" class="sl-overlay"<?= $overlayAttrsHtml ?>>
 
     <div id="simplelogin-modal" class="sl-modal">
 
         <!-- CLOSE -->
-        <button onclick="closeSimpleLoginOverlay();" style="
+        <button type="button" data-sl-close style="
             position:absolute;
             top:10px;
             right:10px;
@@ -226,7 +240,7 @@ if ($statusType === 'success') {
             border-radius:6px;
             cursor:pointer;
             font-weight:bold;
-        ">&#10008;</button>
+        " aria-label="<?= htmlspecialchars(Text::_('JCLOSE')) ?>">&#10008;</button>
 
         <!-- MESSAGE -->
         <?php if (!empty($statusMessage)) : ?>
@@ -303,55 +317,7 @@ if ($statusType === 'success') {
     </div>
 </div>
 
-<!-- AUTO SUBMIT -->
-<?php if ($autoSubmit && $postLogin) : ?>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    var form = document.getElementById('simplelogin-autopost');
-    if (!form) return;
-
-    setTimeout(function () {
-        form.submit();
-    }, 800);
-});
-</script>
+<?php if (!defined('PLG_SYSTEM_SIMPLELOGIN_JS_LOADED')) : ?>
+    <?php define('PLG_SYSTEM_SIMPLELOGIN_JS_LOADED', 1); ?>
+    <script src="<?= htmlspecialchars(Uri::root() . 'media/plg_system_simplelogin/js/simplelogin.js') ?>" defer></script>
 <?php endif; ?>
-
-<!-- AUTO REDIRECT -->
-<?php if ($autoSubmit && !$postLogin && !empty($redirectUrl)) : ?>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    setTimeout(function () {
-        window.location.href = <?= json_encode($redirectUrl) ?>;
-    }, 800);
-});
-</script>
-<?php endif; ?>
-
-<script>
-function closeSimpleLoginOverlay() {
-
-    var overlay = document.getElementById('simplelogin-overlay');
-    if (!overlay) return;
-
-    overlay.classList.add('sl-closing');
-
-    setTimeout(function () {
-
-        overlay.remove();
-
-        if (window.history && window.history.replaceState) {
-
-            var url = new URL(window.location.href);
-
-            url.searchParams.delete('simplelogin');
-            url.searchParams.delete('selector');
-            url.searchParams.delete('validator');
-            url.searchParams.delete('sl_task');
-
-            window.history.replaceState({}, document.title, url.toString());
-        }
-
-    }, 200);
-}
-</script>

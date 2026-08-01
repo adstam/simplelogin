@@ -279,6 +279,30 @@ trait UtilityTrait
     }
 
     /**
+     * Haalt subject en body van een mailtemplate op uit de plugin-params en
+     * bepaalt of de mail als HTML of plain text verstuurd moet worden.
+     *
+     * Vervangt de vroegere MailService::sendTemplatedMail(): de resolutie
+     * van de template gebeurt hier, het versturen zelf gebeurt via
+     * MailServiceInterface::sendMail() (die zelf de placeholders vervangt).
+     *
+     * @param string $subjectKey Param-sleutel voor het onderwerp
+     * @param string $bodyKey    Param-sleutel voor de body (zonder '_html'-suffix)
+     *
+     * @return array{0: string, 1: string, 2: bool} [$subject, $body, $isHtml]
+     */
+    private function resolveMailTemplate(string $subjectKey, string $bodyKey): array
+    {
+        $subject = $this->params->get($subjectKey, '');
+        $isHtml  = ($this->params->get('mail_format', 'text') === 'html');
+
+        $bodyKeyWithSuffix = $isHtml ? $bodyKey . '_html' : $bodyKey;
+        $body = $this->params->get($bodyKeyWithSuffix, '');
+
+        return [$subject, $body, $isHtml];
+    }
+
+    /**
      * Zoekt een user_id op basis van e-mailadres.
      * Geeft null terug als de gebruiker niet bestaat.
      */
@@ -456,7 +480,7 @@ trait UtilityTrait
             return;
         }
 
-        Factory::getApplication()->getLanguage()->load(
+        $this->loadLanguage(
             'plg_system_simplelogin',
             JPATH_PLUGINS . '/system/simplelogin'
         );

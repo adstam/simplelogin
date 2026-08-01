@@ -58,11 +58,14 @@ private function log(
     $toThrottle = $definition['throttle'] ?? false;
     $type       = $definition['type'] ?? 'AccountEvent'; // 👈 Default waarde als type ontbreekt
 
-    // Voeg de nieuwe types toe aan de toegestane lijst
+    // Toegestane log TYPE-categorieën (moet matchen met de ENUM-kolom 'type').
+    // LET OP: 'admin_approved_registration'/'admin_rejected_registration' zijn
+    // STATUS-sleutels, geen types -- ze horen hier niet in, en staan (correct)
+    // gemapt op type 'AccountEvent' via getStatusDefinition().
     $allowedTypes = [
         'AccountEvent', 'DebugDiagnostics', 'DebugFlowTrace',
         'DebugRequestTrace', 'InviteFlow', 'LoginFlow', 'SecurityIncident',
-        'admin_approved_registration', 'admin_rejected_registration'
+        'ImageError',
     ];
 
     // Zorg dat $type altijd een string is en in de toegestane lijst staat
@@ -239,6 +242,15 @@ private function log(
             'scanner_detected'                   => ['type' => 'SecurityIncident',  'debugonly' => false, 'throttle' => false],
             'suspicious_request'                 => ['type' => 'SecurityIncident',  'debugonly' => false, 'throttle' => false],
 			'invite_pending_approval'               => ['type' => 'InviteFlow',        'debugonly' => false, 'throttle' => false],
+
+			// Admin approval/rejection acties (1.1.0) -- ontbraken hier, waardoor ze
+			// stilzwijgend op de map()-fallback (debugonly=true) terugvielen en dus
+			// NOOIT gelogd werden buiten Joomla debug-modus.
+			'admin_approved_registration'           => ['type' => 'AccountEvent',      'debugonly' => false, 'throttle' => false],
+			'admin_rejected_registration'           => ['type' => 'AccountEvent',      'debugonly' => false, 'throttle' => false],
+			 // Nieuwe statuses voor image errors
+			'image_not_found'					 => ['type' => 'ImageError', 		'debugonly' => false,  'throttle' => false],
+			'image_too_large' 					 => ['type' => 'ImageError',        'debugonly' => false,  'throttle' => false],
         ];
 
         return $map[$status] ?? [

@@ -127,10 +127,10 @@ if ($isSuccess) {
 }
 </style>
 
-<div id="simplelogin-overlay" class="sl-overlay">
+<div id="simplelogin-overlay" class="sl-overlay" data-sl-clean-on-load="1">
     <div id="simplelogin-modal" class="sl-modal">
 
-        <button type="button" onclick="SimpleLogin.closeOverlay()" style="
+        <button type="button" data-sl-close style="
             position:absolute;top:10px;right:10px;
             background:#ef4444;border:none;color:#fff;
             width:28px;height:28px;border-radius:6px;cursor:pointer;font-weight:bold;
@@ -169,31 +169,7 @@ if ($isSuccess) {
     </div>
 </div>
 
-<script>
-(function () {
-    window.SimpleLogin = window.SimpleLogin || {};
-
-    SimpleLogin.cleanUrl = function () {
-        try {
-            const url = new URL(window.location.href);
-            url.searchParams.delete('simplelogin');
-            url.searchParams.delete('sl_task');
-            url.searchParams.delete('selector');
-            url.searchParams.delete('validator');
-            window.history.replaceState({}, document.title, url.pathname + (url.search ? '?' + url.searchParams.toString() : ''));
-        } catch (e) {}
-    };
-
-    SimpleLogin.closeOverlay = function () {
-        const el = document.getElementById('simplelogin-overlay');
-        if (!el) return;
-        el.classList.add('sl-closing');
-        setTimeout(function () {
-            el.remove();
-            SimpleLogin.cleanUrl();
-        }, 200);
-    };
-
-    SimpleLogin.cleanUrl();
-})();
-</script>
+<?php if (!defined('PLG_SYSTEM_SIMPLELOGIN_JS_LOADED')) : ?>
+    <?php define('PLG_SYSTEM_SIMPLELOGIN_JS_LOADED', 1); ?>
+    <script src="<?= htmlspecialchars(Uri::root() . 'media/plg_system_simplelogin/js/simplelogin.js') ?>" defer></script>
+<?php endif; ?>

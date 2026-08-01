@@ -20,13 +20,15 @@ interface MailServiceInterface
     /**
      * Sends an email to the specified recipient.
      *
-     * @param string $recipient The email address of the recipient
-     * @param string $subject   The email subject
-     * @param string $body      The email body
+     * @param string $recipient    The email address of the recipient
+     * @param string $subject      The email subject
+     * @param string $body         The email body
+     * @param array  $placeholders Associative array of placeholder => value pairs
+     * @param bool   $isHtml       Whether the body should be sent as HTML
      *
      * @return bool True on success, false on failure
      */
-    public function sendMail(string $recipient, string $subject, string $body): bool;
+    public function sendMail(string $recipient, string $subject, string $body, array $placeholders = [], bool $isHtml = false): bool;
 
     /**
      * Builds a mail body by replacing placeholders in a template.

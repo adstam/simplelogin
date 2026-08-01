@@ -9,5 +9,6 @@ MODIFY COLUMN `type` ENUM(
     'LoginFlow',
     'SecurityIncident',
     'admin_approved_registration',
-    'admin_rejected_registration'
+    'admin_rejected_registration',
+    'ImageError'
 ) NOT NULL;

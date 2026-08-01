@@ -25,7 +25,9 @@ use Joomla\CMS\Log\Log;
 use Joomla\CMS\Plugin\CMSPlugin;
 use Joomla\CMS\Router\Route;
 use Joomla\CMS\Uri\Uri;
+use Joomla\CMS\Form\Form;
 use Joomla\Event\Event;
+use Joomla\Event\DispatcherInterface;
 
 class Simplelogin extends CMSPlugin
 {
@@ -47,7 +49,7 @@ class Simplelogin extends CMSPlugin
     private MailServiceInterface $mailService;
 
     // ---------------------------------------------------------------------------
-    // State properties — gevuld tijdens request, uitgelezen door onAfterRender
+    // State properties
     // ---------------------------------------------------------------------------
 
     protected string $statusMessage    = '';
@@ -75,6 +77,7 @@ class Simplelogin extends CMSPlugin
             'onAjaxSimplelogin' => 'onAjaxSimplelogin',
             'onBeforeRender'    => 'onBeforeRender',
             'onAfterDispatch'   => 'onAfterDispatch',
+			'onContentPrepareForm' => 'onContentPrepareForm',
         ];
     }
 
@@ -82,7 +85,7 @@ class Simplelogin extends CMSPlugin
     // Constructor
     // ---------------------------------------------------------------------------
 
-    public function __construct($dispatcher, array $config, MailServiceInterface $mailService)
+    public function __construct(DispatcherInterface $dispatcher, array $config, MailServiceInterface $mailService)
     {
         parent::__construct($dispatcher, $config);
         $this->mailService = $mailService;
@@ -218,12 +221,11 @@ class Simplelogin extends CMSPlugin
      * Verstuurt een invite-link na registratie.
      * Getriggerd door handleRegister() via $user->save().
      */
-    public function onUserAfterSave(array $user, bool $isNew, bool $success, string $msg): void
+    public function onUserAfterSave(array $data, bool $isNew, bool $result, ?string $msg = null): void
     {
-        if (!$isNew || !$success) {
+        if (!$isNew || !$result) {
             return;
         }
-
         $app = Factory::getApplication();
 
         if (!$app->getSession()->get('sl_invite_pending', false)) {
@@ -232,99 +234,54 @@ class Simplelogin extends CMSPlugin
 
         $app->getSession()->set('sl_invite_pending', false);
 
-        $this->sendInviteLink((int) $user['id']);
+        $this->sendInviteLink((int) $data['id']);
     }
-public function onAjaxSimplelogin(): array
-{
-    $input  = Factory::getApplication()->input;
-    $method = (string) $input->getString('method', '');
 
-    try {
-        if ($method === 'HashPasswords') {
-            return $this->ajaxHashPasswords();
+    public function onAjaxSimplelogin(): array
+    {
+        $input  = Factory::getApplication()->input;
+        $method = (string) $input->getString('method', '');
+
+        try {
+            if ($method === 'HashPasswords') {
+                return $this->ajaxHashPasswords();
+            }
+
+            if ($method === 'GetLogRows') {
+                return $this->ajaxGetLogRows();
+            }
+
+            if ($method === 'PurgeLogRows') {
+                return $this->ajaxPurgeLogRows();
+            }
+
+            if ($method === 'ExportLog') {
+                return $this->ajaxExportLog();
+            }
+
+            if ($method === 'ApproveUser') {
+                return $this->ajaxApproveUser();
+            }
+
+            if ($method === 'RejectUser') {
+                return $this->ajaxRejectUser();
+            }
+
+            return [
+                'success' => false,
+                'message' => Text::sprintf('PLG_SYSTEM_SIMPLELOGIN_ERR_UNKNOWN_METHOD', $method),
+            ];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'message' => $e->getMessage()];
         }
-
-        if ($method === 'GetLogRows') {
-            return $this->ajaxGetLogRows();
-        }
-
-        if ($method === 'PurgeLogRows') {
-            return $this->ajaxPurgeLogRows();
-        }
-
-        if ($method === 'ExportLog') {
-            return $this->ajaxExportLog();
-        }
-
-        if ($method === 'ApproveUser') {
-            return $this->ajaxApproveUser();
-        }
-
-        if ($method === 'RejectUser') {
-            return $this->ajaxRejectUser();
-        }
-
-        return [
-            'success' => false,
-            'message' => Text::sprintf('PLG_SYSTEM_SIMPLELOGIN_ERR_UNKNOWN_METHOD', $method),
-        ];
-    } catch (\Throwable $e) {
-        return ['success' => false, 'message' => $e->getMessage()];
     }
-}
-    /**
-     * AJAX handler — bereikbaar via index.php?option=com_ajax&plugin=simplelogin&format=json
-     *
-	public function onAjaxSimplelogin(): array
-	{
-		$input  = Factory::getApplication()->input;
-		$method = (string) $input->getString('method', '');
-
-		try {
-			if ($method === 'HashPasswords') {
-				return $this->ajaxHashPasswords();
-			}
-
-			if ($method === 'GetLogRows') {
-				return $this->ajaxGetLogRows();
-			}
-
-			if ($method === 'PurgeLogRows') {
-				return $this->ajaxPurgeLogRows();
-			}
-
-			if ($method === 'ExportLog') {
-				return $this->ajaxExportLog();
-			}
-
-			// 👇 VOEG DEZE TWEE REGELS TOE:
-			if ($method === 'ApproveUser') {
-				Echo $this->ajaxApproveUser();
-				return $this->ajaxApproveUser();
-			}
-
-			if ($method === 'RejectUser') {
-				echo $this->ajaxRejectUser()
-				return $this->ajaxRejectUser();
-
-			}
-
-			// 👇 De default foutmelding (blijft ongewijzigd)
-			return [
-				'success' => false,
-				'message' => Text::sprintf('PLG_SYSTEM_SIMPLELOGIN_ERR_UNKNOWN_METHOD', $method),
-			];
-		} catch (\Throwable $e) {
-			return ['success' => false, 'message' => $e->getMessage()];
-		}
-	} */
 
     /**
-     * onBeforeRender — momenteel geen actie; placeholder voor toekomstig gebruik.
+     * onBeforeRender
      */
     public function onBeforeRender(): void
     {
-        // Intentionally empty — placeholder for future use.
+        // Intentionally empty
     }
 
     /**
@@ -344,16 +301,105 @@ public function onAjaxSimplelogin(): array
             return;
         }
 
-        $app->getLanguage()->load('plg_system_simplelogin', JPATH_PLUGINS . '/system/simplelogin');
+        $this->loadLanguage('plg_system_simplelogin', JPATH_PLUGINS . '/system/simplelogin');
 
         $translations = json_encode([
-            'name'   => Text::_('PLG_SYSTEM_SIMPLELOGIN_BTN_NAME'),
-            'link'   => Text::_('PLG_SYSTEM_SIMPLELOGIN_BTN_LINK'),
-            'expiry' => Text::_('PLG_SYSTEM_SIMPLELOGIN_BTN_EXPIRY'),
+            'name'      => Text::_('PLG_SYSTEM_SIMPLELOGIN_BTN_NAME'),
+            'link'      => Text::_('PLG_SYSTEM_SIMPLELOGIN_BTN_LINK'),
+            'expiry'    => Text::_('PLG_SYSTEM_SIMPLELOGIN_BTN_EXPIRY'),
+            'email'     => Text::_('PLG_SYSTEM_SIMPLELOGIN_BTN_EMAIL'),
+            'sitename'  => Text::_('PLG_SYSTEM_SIMPLELOGIN_BTN_SITENAME'),
+            'reason'    => Text::_('PLG_SYSTEM_SIMPLELOGIN_BTN_REASON'),
+            'adminlink' => Text::_('PLG_SYSTEM_SIMPLELOGIN_BTN_ADMINLINK'),
         ]);
 
         $app->getDocument()->addScriptDeclaration("var SimpleloginBtnLabels = {$translations};");
 
         HTMLHelper::_('script', 'plg_system_simplelogin/bodybuttons.js', ['relative' => true, 'version' => 'auto']);
     }
+
+    // ===========================================================================
+    // Template Validatie (AC9, AC10)
+    // ===========================================================================
+
+    /**
+     * Valideert mail templates op afbeeldings-URLs bij opslaan van plugin parameters.
+     * Toont pop-up bij te grote of externe afbeeldingen.
+     *
+     * @param string $context De context
+     * @param object $table De extensie tabel
+     * @param bool $isNew Of het een nieuwe extensie is
+     * @return bool True om opslaan toe te staan
+     */
+
+	/**
+	 * Voegt client-side validatie toe aan het plugin form voor afbeeldingen.
+	 * Toont pop-up bij te grote of externe afbeeldingen (AC9, AC10).
+	 */
+	public function onContentPrepareForm($form, $data): void
+	{
+		// Alleen voor Simplelogin plugin in administrator
+		if (!$form instanceof Form || $form->getName() !== 'com_plugins.plugin') {
+			return;
+		}
+
+		if ($form->getValue('element') !== 'simplelogin' || $form->getValue('folder') !== 'system') {
+			return;
+		}
+
+		$app = Factory::getApplication();
+		$waarschuwingTitel = Text::_('PLG_SYSTEM_SIMPLELOGIN_TEMPLATE_VALIDATION_TITLE');
+
+		$app->getDocument()->addScriptDeclaration('
+			document.addEventListener("DOMContentLoaded", function() {
+				const form = document.querySelector("form[name=\'adminForm\']");
+				if (!form) return;
+
+				form.addEventListener("submit", function(e) {
+					const htmlFields = [
+						"jform_params_loginmail_body_html",
+						"jform_params_invitemail_body_html",
+						"jform_params_mail_admin_body_html",
+						"jform_params_mail_approval_body_html",
+						"jform_params_mail_rejection_body_html"
+					];
+
+					let warnings = [];
+					htmlFields.forEach(function(fieldId) {
+						const field = document.getElementById(fieldId);
+						if (!field) return;
+
+						const html = field.value;
+						const parser = new DOMParser();
+						const doc = parser.parseFromString(html, "text/html");
+						const imgs = doc.getElementsByTagName("img");
+
+						for (let img of imgs) {
+							const src = img.getAttribute("src");
+							if (!src) continue;
+
+							// Check of src in /media/ of /images/ zit
+							if (!src.includes("/media/") && !src.includes("/images/")) {
+								warnings.push("Afbeelding: " + src + " moet in /media/ of /images/ folder staan");
+								continue;
+							}
+
+							// Check of afbeelding te groot is (simpele check op URL, geen echte size check mogelijk in JS)
+							// Dit is een waarschuwing voor externe URLs
+							if (src.startsWith("http") && !src.includes(window.location.hostname)) {
+								warnings.push("Afbeelding: " + src + " is extern en wordt niet embedded");
+							}
+						}
+					});
+
+					if (warnings.length > 0) {
+						e.preventDefault();
+						alert("' . addslashes($waarschuwingTitel) . '\\n\\n" + warnings.join("\\n"));
+						return false;
+					}
+				});
+			});
+		');
+	}
+
 }

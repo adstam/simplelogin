@@ -15,6 +15,7 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Uri\Uri;
 use Joomla\CMS\User\UserFactoryInterface;
+use Joomla\Registry\Registry;
 
 /**
  * RegisterFlowTrait
@@ -24,21 +25,6 @@ use Joomla\CMS\User\UserFactoryInterface;
  * - Invite-activatie via GET (alleen UI, geen DB-wijzigingen)
  * - Invite-activatie via POST (token consumeren, account activeren)
  * - Versturen van invite-links per e-mail
- *
- * showLoginForm-beleid:
- *   false bij alle fout- en tokensituaties — alleen de melding tonen
- *
- * Gebruikt state properties van Simplelogin:
- *   $this->statusMessage, $this->statusType, $this->autoSubmit,
- *   $this->showLoginForm, $this->postLogin, $this->registerFlow
- *
- * Gebruikt methoden uit andere traits:
- *   LogTrait::log()
- *   UtilityTrait::normalizeEmail(), isValidEmail(), generateUsername(),
- *               generateToken(), consumeToken(), isAccountActivated(),
- *               isPendingActivation(), createPendingActivation(),
- *               deleteUnactivatedUser(), setError(),
- *               finishRegisterError(), finishTokenError(), redirectWithMessage()
  */
 trait RegisterFlowTrait
 {
@@ -78,6 +64,7 @@ trait RegisterFlowTrait
 
         $db = Factory::getDbo();
 
+        // Controleer of e-mail al bestaat
         $exists = $db->setQuery(
             $db->getQuery(true)
                 ->select('id')
@@ -93,9 +80,9 @@ trait RegisterFlowTrait
             return;
         }
 
-        $config       = $app->getConfig();
-        $defaultGroup = (int) $config->get('new_usertype', 2);
+        $defaultGroup = (int) $app->get('new_usertype', 2);
 
+        // Maak nieuwe gebruiker aan
         $user = new \Joomla\CMS\User\User();
         $user->set('name',       $name);
         $user->set('username',   $this->generateUsername($name));
@@ -106,18 +93,40 @@ trait RegisterFlowTrait
         $user->set('password',   bin2hex(random_bytes(32)));
         $user->set('groups',     [$defaultGroup]);
 
-        // Marker zetten VOOR save, zodat onUserAfterSave hem direct ziet
-        $app->getSession()->set('sl_invite_pending', true);
-
+        // 👈 CRITIEK: SLA GEBRUIKER OP IN DATABASE
         if (!$user->save()) {
-            $app->getSession()->set('sl_invite_pending', false);
+            $this->log(0, 'register_save_failed');
             $this->finishRegisterError(Text::_('PLG_SYSTEM_SIMPLELOGIN_REGISTER_FAILED'));
             return;
         }
 
-        // Marker direct opruimen na succesvolle save
-        $app->getSession()->set('sl_invite_pending', false);
+        // Stuur invite-link naar gebruiker
+        $this->sendInviteLink($user->id);
 
+        // Stuur admin notificatie (alleen als ingeschakeld)
+        if ((int) $this->params->get('notify_admin_registration', 0) === 1) {
+            $sitename = $app->get('sitename');
+            [$subject, $body, $isHtml] = $this->resolveMailTemplate('mail_admin_subject', 'mail_admin_body');
+            $this->mailService->sendMail(
+                $app->get('mailfrom'),
+                $subject,
+                $body,
+                [
+                    '#name'     => $user->name,
+                    '#email'    => $user->email,
+                    '#sitename' => $sitename,
+                ],
+                $isHtml
+			);
+			
+		
+        }
+
+		foreach ($this->mailService->getLastImageErrors() as $error) {
+			$status = ($error['status'] === 'not_found') ? 'image_not_found' : 'image_too_large';
+			$this->log(null, $status, null, $error['url'] . ' | ' . $error['message']);
+		}
+		
         $this->registerFlow  = false;
         $this->statusMessage = Text::_('PLG_SYSTEM_SIMPLELOGIN_REGISTER_SUCCESS');
         $this->statusType    = 'success';
@@ -130,13 +139,8 @@ trait RegisterFlowTrait
 
     /**
      * Invite-activatie GET: alleen UI voorbereiden, geen state changes.
-     * Cruciaal tegen Outlook SafeLinks en andere link-scanners.
-     *
-     * Bij een verlopen link wordt het account direct verwijderd via
-     * deleteUnactivatedUser() — niet via de generieke cleanupExpiredRegistrations()
-     * omdat die een dubbele tijdscheck gebruikt die net-verlopen tokens overslaat.
      */
-    private function handleInviteActivation(object $row, int $loginId, string $validator): void
+    protected function handleInviteActivation(object $row, int $loginId, string $validator): void
     {
         // 👇 NIEUW: Check of gebruiker nog bestaat
         $db = Factory::getDbo();
@@ -222,11 +226,8 @@ trait RegisterFlowTrait
 
     /**
      * Invite-activatie POST: token consumeren, account activeren, login-link sturen.
-     *
-     * Bij een verlopen link wordt het account direct verwijderd via
-     * deleteUnactivatedUser() zodat de gebruiker direct opnieuw kan registreren.
      */
-    private function handleInvitePostActivation(object $row, int $loginId, string $validator): void
+    protected function handleInvitePostActivation(object $row, int $loginId, string $validator): void
     {
         $app = Factory::getApplication();
 
@@ -333,7 +334,6 @@ trait RegisterFlowTrait
 
     /**
      * Maakt een invite-token aan en verstuurt de activatielink.
-     * Aangeroepen vanuit Simplelogin::onUserAfterSave().
      */
     private function sendInviteLink(int $userId): void
     {
@@ -379,20 +379,18 @@ trait RegisterFlowTrait
         $loginId    = (int) $db->insertid();
         $inviteLink = Uri::root() . "index.php?simplelogin=1&selector={$selector}&validator={$validator}";
 
-        // Use MailService to build and send the email
-        $body = $this->mailService->buildMailBody(
-            $this->params->get('mail_invite_body', ''),
+        // 👈 GECORRIGEERD: Gebruik mail_invite_* i.p.v. mail_login_*
+        [$subject, $body, $isHtml] = $this->resolveMailTemplate('mail_invite_subject', 'mail_invite_body');
+        $this->mailService->sendMail(
+            $user->email,
+            $subject,
+            $body,
             [
                 '#name'   => $user->name,
                 '#link'   => $inviteLink,
-                '#expiry' => (string) $expiryMinutes,
-            ]
-        );
-
-        $this->mailService->sendMail(
-            $email,
-            $this->params->get('mail_invite_subject', ''),
-            $body
+				'#expiry' => $expiryMinutes,
+            ],
+            $isHtml
         );
 
         $this->log($userId, 'invite_sent', $loginId);

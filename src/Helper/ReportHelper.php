@@ -83,6 +83,7 @@ class ReportHelper
             'DebugRequestTrace',
             'InviteFlow',
             'SecurityIncident',
+			'ImageError',
         ];
     }
 	
@@ -94,6 +95,21 @@ class ReportHelper
     public static function getPendingApprovals(): array
     {
         $db = Factory::getDbo();
+
+        // LET OP: activation alleen filteren op 'sl-pending:%' is niet genoeg -- na het
+        // bevestigen van de invite-mail wordt activation al leeggemaakt (zie
+        // RegisterFlowTrait::handleInviteActivation()), terwijl block=1 blijft staan
+        // tot een admin goed- of afkeurt. Op dat moment is activation='' niet meer te
+        // onderscheiden van een normaal (om andere redenen) geblokkeerd account. Daarom
+        // koppelen we expliciet aan een bestaand invite-token van deze plugin, zodat
+        // alleen accounts die daadwerkelijk via de Simplelogin-registratie kwamen in
+        // deze lijst verschijnen -- en dus alleen die accounts hier goedgekeurd of
+        // (definitief!) verwijderd kunnen worden via Approve/Reject.
+        $inviteExists = $db->getQuery(true)
+            ->select('1')
+            ->from($db->quoteName('#__simple_login', 'sl'))
+            ->where('sl.user_id = u.id')
+            ->where('sl.type = ' . $db->quote('invite'));
 
         $query = $db->getQuery(true)
             ->select([
@@ -107,7 +123,7 @@ class ReportHelper
             ])
             ->from($db->quoteName('#__users', 'u'))
             ->where($db->quoteName('u.block') . ' = 1')
-//            ->where($db->quoteName('u.activation') . ' LIKE ' . $db->quote('sl-pending:%'))
+            ->where('EXISTS (' . (string) $inviteExists . ')')
             ->order('u.registerDate DESC');
 
         $db->setQuery($query);

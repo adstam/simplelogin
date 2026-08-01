@@ -14,24 +14,11 @@ defined('_JEXEC') or die;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\User\UserFactoryInterface;
+use Joomla\CMS\Uri\Uri;
+use Joomla\Registry\Registry;
 
 /**
  * AjaxTrait
- *
- * Verantwoordelijk voor:
- * - AJAX-methode routing (HashPasswords, GetLogRows, PurgeLogRows, ExportLog, ApproveUser, RejectUser)
- * - Wachtwoorden van alle niet-admin frontend-gebruikers overschrijven
- * - Logrijen ophalen en als HTML-tabel teruggeven
- * - Logrijen verwijderen (gefilterd op type)
- * - Logexport per e-mail versturen (logtabel + Joomla logbestand, laatste 24 uur)
- * - Admin goedkeuring/afkeuring van registraties
- * - Admin CSRF-token + rechtencontrole (core.manage op com_plugins)
- *
- * Gebruikt state properties van Simplelogin:
- *   (geen — alle methoden zijn request/response gebaseerd)
- *
- * Gebruikt methoden uit andere traits:
- *   (geen — assertPluginManageAccess() is volledig zelfstandig)
  */
 trait AjaxTrait
 {
@@ -92,7 +79,7 @@ trait AjaxTrait
                 )->execute();
                 $processed++;
             } catch (\Exception $e) {
-                // Sla gebruiker over bij fout, ga door met de rest
+                // Sla gebruiker over bij fout
             }
         }
 
@@ -104,7 +91,6 @@ trait AjaxTrait
 
     /**
      * Haalt logrijen op en geeft ze terug als HTML-tabel.
-     * Optioneel gefilterd op type (wildcard * aan het einde toegestaan).
      */
     private function ajaxGetLogRows(): array
     {
@@ -129,7 +115,6 @@ trait AjaxTrait
 
     /**
      * Verwijdert logrijen uit #__simple_login_log.
-     * Optioneel gefilterd op type (wildcard * aan het einde toegestaan).
      */
     private function ajaxPurgeLogRows(): array
     {
@@ -166,8 +151,7 @@ trait AjaxTrait
     }
 
     /**
-     * Exporteert de logtabel en het Joomla-logbestand van de laatste 24 uur
-     * en verstuurt het resultaat per e-mail naar het site-mailadres.
+     * Exporteert de logtabel en het Joomla-logbestand.
      */
     private function ajaxExportLog(): array
     {
@@ -180,9 +164,7 @@ trait AjaxTrait
 
         $since = date('Y-m-d H:i:s', strtotime('-24 hours'));
 
-        // ----------------------------------------------------------------
-        // Deel 1: logtabel
-        // ----------------------------------------------------------------
+        // Logtabel
         $rows = $db->setQuery(
             $db->getQuery(true)
                 ->select(['created', 'type', 'status', 'username', 'user_agent'])
@@ -211,9 +193,7 @@ trait AjaxTrait
 
         $lines[] = '';
 
-        // ----------------------------------------------------------------
-        // Deel 2: Joomla-logbestand
-        // ----------------------------------------------------------------
+        // Joomla-logbestand
         $logPath = $app->get('log_path', JPATH_ROOT . '/logs')
             . '/plg_system_simplelogin.php';
 
@@ -248,32 +228,24 @@ trait AjaxTrait
             }
         }
 
-        // ----------------------------------------------------------------
         // Mail versturen
-        // ----------------------------------------------------------------
-        $config  = $app->getConfig();
         $mailer  = Factory::getMailer();
 
-        $mailer->setSender([$config->get('mailfrom'), $config->get('fromname')]);
-        $mailer->addRecipient($config->get('mailfrom'));
+        $mailer->setSender([$app->get('mailfrom'), $app->get('fromname')]);
+        $mailer->addRecipient($app->get('mailfrom'));
         $mailer->setSubject(
-            '[' . $config->get('sitename') . '] Simplelogin log export ' . date('Y-m-d H:i')
+            '[' . $app->get('sitename') . '] Simplelogin log export ' . date('Y-m-d H:i')
         );
         $mailer->setBody(implode("\n", $lines));
 
         $sent = $mailer->send();
-
-        $app->getLanguage()->load(
-            'plg_system_simplelogin',
-            JPATH_PLUGINS . '/system/simplelogin'
-        );
 
         if ($sent === true) {
             return [
                 'success' => true,
                 'message' => Text::sprintf(
                     'PLG_SYSTEM_SIMPLELOGIN_MSG_EXPORT_SENT',
-                    $config->get('mailfrom')
+                    $app->get('mailfrom')
                 ),
             ];
         }
@@ -289,7 +261,7 @@ trait AjaxTrait
     // ===========================================================================
 
     /**
-     * Goedkeurt een pending registratie (block=0 zetten).
+     * Goedkeurt een pending registratie.
      */
     private function ajaxApproveUser(): array
     {
@@ -297,18 +269,75 @@ trait AjaxTrait
         $input = $app->input;
         $userId = $input->getInt('user_id', 0);
 
-        // DEBUG: Log alle input
-        error_log('SimpleLogin DEBUG: ajaxApproveUser called, user_id=' . $userId);
-
         if ($denied = $this->assertPluginManageAccess()) {
-            error_log('SimpleLogin DEBUG: Access denied in ajaxApproveUser');
             return $denied;
         }
 
-        error_log('SimpleLogin DEBUG: Access granted, processing user_id=' . $userId);
+        if ($userId <= 0) {
+            return ['success' => false, 'message' => Text::_('PLG_SYSTEM_SIMPLELOGIN_ERR_INVALID_TOKEN')];
+        }
+
+        $db = Factory::getDbo();
+
+        // Controleer of gebruiker bestaat en geblokkeerd is
+        $user = $db->setQuery(
+            $db->getQuery(true)
+                ->select('block, activation')
+                ->from('#__users')
+                ->where('id = ' . (int) $userId)
+        )->loadObject();
+
+        if (!$user) {
+            return ['success' => false, 'message' => Text::_('PLG_SYSTEM_SIMPLELOGIN_APPROVAL_INVALID_USER')];
+        }
+
+        if ((int) $user->block !== 1) {
+            return ['success' => false, 'message' => Text::_('PLG_SYSTEM_SIMPLELOGIN_APPROVAL_INVALID_USER')];
+        }
+
+        // Deblokkeer gebruiker. 'activation' blijft ongewijzigd:
+        // - als de gebruiker al zelf geactiveerd had (activation al leeg), verandert er niets
+        // - als de gebruiker nog niet geactiveerd had (pending-marker), blijft die staan zodat
+        //   de invite-activatieflow bij het klikken op de link zelf de "al goedgekeurd"-tak
+        //   (block === 0) oppakt: geen approval-mail, direct inloglink na activeren.
+        $db->setQuery(
+            $db->getQuery(true)
+                ->update('#__users')
+                ->set([
+                    'block = 0',
+                ])
+                ->where('id = ' . (int) $userId)
+        )->execute();
+
+        $this->log($userId, 'admin_approved_registration');
+
+        // Alleen approval-mail sturen als gebruiker AL geactiveerd is
+        $user = Factory::getContainer()->get(UserFactoryInterface::class)->loadUserById($userId);
+        if ($user && !$this->isPendingActivation($user->activation)) {
+            $this->sendApprovalEmail($userId);
+        }
+
+        return [
+            'success' => true,
+            'message' => Text::_('PLG_SYSTEM_SIMPLELOGIN_APPROVAL_SUCCESS'),
+        ];
+    }
+
+    /**
+     * Keurt een pending registratie af.
+     */
+    private function ajaxRejectUser(): array
+    {
+        $app = Factory::getApplication();
+        $input = $app->input;
+        $userId = $input->getInt('user_id', 0);
+        $reason = $input->getString('reason', '');
+
+        if ($denied = $this->assertPluginManageAccess()) {
+            return $denied;
+        }
 
         if ($userId <= 0) {
-            error_log('SimpleLogin DEBUG: Invalid user_id');
             return ['success' => false, 'message' => Text::_('PLG_SYSTEM_SIMPLELOGIN_ERR_INVALID_TOKEN')];
         }
 
@@ -323,122 +352,43 @@ trait AjaxTrait
         )->loadObject();
 
         if (!$user) {
-            error_log('SimpleLogin DEBUG: User not found for id=' . $userId);
             return ['success' => false, 'message' => Text::_('PLG_SYSTEM_SIMPLELOGIN_APPROVAL_INVALID_USER')];
         }
-
-        error_log('SimpleLogin DEBUG: User found, block=' . $user->block);
 
         if ((int) $user->block !== 1) {
-            error_log('SimpleLogin DEBUG: User not blocked (block=' . $user->block . ')');
             return ['success' => false, 'message' => Text::_('PLG_SYSTEM_SIMPLELOGIN_APPROVAL_INVALID_USER')];
         }
 
-        // Deblokkeer gebruiker
-        $result = $db->setQuery(
+        // 👇 Verstuur afkeurmail VOOR het verwijderen
+        $this->sendRejectionEmail($userId, $reason);
+
+        // Verwijder gebruiker
+        $db->setQuery(
             $db->getQuery(true)
-                ->update('#__users')
-                ->set('block = 0')
+                ->delete('#__users')
                 ->where('id = ' . (int) $userId)
         )->execute();
 
-        error_log('SimpleLogin DEBUG: Update execute result=' . ($result ? 'true' : 'false'));
-
-        if (!$result) {
-            error_log('SimpleLogin DEBUG: Update failed!');
-            return ['success' => false, 'message' => Text::_('PLG_SYSTEM_SIMPLELOGIN_APPROVAL_DB_ERROR')];
-        }
-
-        // Controleer of de update echt is doorgevoerd
-        $check = $db->setQuery(
+        $db->setQuery(
             $db->getQuery(true)
-                ->select('block')
-                ->from('#__users')
-                ->where('id = ' . (int) $userId)
-        )->loadResult();
+                ->delete('#__user_usergroup_map')
+                ->where('user_id = ' . (int) $userId)
+        )->execute();
 
-        error_log('SimpleLogin DEBUG: Post-update block=' . $check);
-
-        $this->log($userId, 'admin_approved_registration');
-
-        $this->sendApprovalEmail($userId);
+        $this->log($userId, 'admin_rejected_registration');
 
         return [
             'success' => true,
-            'message' => Text::_('PLG_SYSTEM_SIMPLELOGIN_APPROVAL_SUCCESS'),
+            'message' => Text::_('PLG_SYSTEM_SIMPLELOGIN_APPROVAL_REJECTED'),
         ];
     }
-
-/**
- * Keurt een pending registratie af (account verwijderen).
- */
-private function ajaxRejectUser(): array
-{
-    $app = Factory::getApplication();
-    $input = $app->input;
-    $userId = $input->getInt('user_id', 0);
-    $reason = $input->getString('reason', '');
-
-    if ($denied = $this->assertPluginManageAccess()) {
-        return $denied;
-    }
-
-    if ($userId <= 0) {
-        return ['success' => false, 'message' => Text::_('PLG_SYSTEM_SIMPLELOGIN_ERR_INVALID_TOKEN')];
-    }
-
-    $db = Factory::getDbo();
-
-    // Controleer of gebruiker bestaat en geblokkeerd is
-    $user = $db->setQuery(
-        $db->getQuery(true)
-            ->select('block')
-            ->from('#__users')
-            ->where('id = ' . (int) $userId)
-    )->loadObject();
-
-    if (!$user) {
-        return ['success' => false, 'message' => Text::_('PLG_SYSTEM_SIMPLELOGIN_APPROVAL_INVALID_USER')];
-    }
-
-    if ((int) $user->block !== 1) {
-        return ['success' => false, 'message' => Text::_('PLG_SYSTEM_SIMPLELOGIN_APPROVAL_INVALID_USER')];
-    }
-
-    // 👇 NIEUW: Verstuur afkeurmail VOOR het verwijderen
-    $this->sendRejectionEmail($userId, $reason);
-
-    // Verwijder gebruiker
-    $result1 = $db->setQuery(
-        $db->getQuery(true)
-            ->delete('#__users')
-            ->where('id = ' . (int) $userId)
-    )->execute();
-
-    $result2 = $db->setQuery(
-        $db->getQuery(true)
-            ->delete('#__user_usergroup_map')
-            ->where('user_id = ' . (int) $userId)
-    )->execute();
-
-    if (!$result1 || !$result2) {
-        return ['success' => false, 'message' => Text::_('PLG_SYSTEM_SIMPLELOGIN_APPROVAL_DB_ERROR')];
-    }
-
-    $this->log($userId, 'admin_rejected_registration');
-
-    return [
-        'success' => true,
-        'message' => Text::_('PLG_SYSTEM_SIMPLELOGIN_APPROVAL_REJECTED'),
-    ];
-}
 
     // ===========================================================================
     // AJAX dispatcher
     // ===========================================================================
 
     /**
-     * AJAX handler — bereikbaar via index.php?option=com_ajax&plugin=simplelogin&format=json
+     * AJAX handler.
      */
     public function onAjaxSimplelogin(): array
     {
@@ -446,47 +396,36 @@ private function ajaxRejectUser(): array
         $method = (string) $input->getString('method', '');
         $userId = $input->getInt('user_id', 0);
 
-        // DEBUG: Log alle input
-        error_log('SimpleLogin AJAX: method=' . $method . ', user_id=' . $userId);
-
         try {
             if ($method === 'HashPasswords') {
-                error_log('SimpleLogin DEBUG: Routing to HashPasswords');
                 return $this->ajaxHashPasswords();
             }
 
             if ($method === 'GetLogRows') {
-                error_log('SimpleLogin DEBUG: Routing to GetLogRows');
                 return $this->ajaxGetLogRows();
             }
 
             if ($method === 'PurgeLogRows') {
-                error_log('SimpleLogin DEBUG: Routing to PurgeLogRows');
                 return $this->ajaxPurgeLogRows();
             }
 
             if ($method === 'ExportLog') {
-                error_log('SimpleLogin DEBUG: Routing to ExportLog');
                 return $this->ajaxExportLog();
             }
 
             if ($method === 'ApproveUser') {
-                error_log('SimpleLogin DEBUG: Routing to ApproveUser');
                 return $this->ajaxApproveUser();
             }
 
             if ($method === 'RejectUser') {
-                error_log('SimpleLogin DEBUG: Routing to RejectUser');
                 return $this->ajaxRejectUser();
             }
 
-            error_log('SimpleLogin DEBUG: Unknown method: ' . $method);
             return [
                 'success' => false,
                 'message' => Text::sprintf('PLG_SYSTEM_SIMPLELOGIN_ERR_UNKNOWN_METHOD', $method),
             ];
         } catch (\Throwable $e) {
-            error_log('SimpleLogin DEBUG: Exception in onAjaxSimplelogin: ' . $e->getMessage());
             return ['success' => false, 'message' => $e->getMessage()];
         }
     }
@@ -496,83 +435,80 @@ private function ajaxRejectUser(): array
     // ===========================================================================
 
     /**
-     * Controleert CSRF-token en core.manage rechten op com_plugins.
-     * Geeft null terug bij succes, of een fout-array bij mislukking.
-     *
-     * @return array{success: false, message: string}|null
+     * Controleert CSRF-token en core.manage rechten.
      */
     private function assertPluginManageAccess(): ?array
     {
         $app = Factory::getApplication();
 
-        // Check BOTH GET and POST tokens (AJAX uses POST)
-        if (!\Joomla\CMS\Session\Session::checkToken('get') && 
+        if (!\Joomla\CMS\Session\Session::checkToken('get') &&
             !\Joomla\CMS\Session\Session::checkToken('post')) {
-            error_log('SimpleLogin DEBUG: CSRF token check failed');
             return ['success' => false, 'message' => Text::_('PLG_SYSTEM_SIMPLELOGIN_ERR_INVALID_TOKEN')];
         }
 
         if (!$app->getIdentity()->authorise('core.manage', 'com_plugins')) {
-            error_log('SimpleLogin DEBUG: core.manage permission denied');
             return ['success' => false, 'message' => Text::_('PLG_SYSTEM_SIMPLELOGIN_ERR_NO_PERMISSION')];
         }
 
         return null;
     }
-	
-		/**
-	 * Verstuurd goedkeuringsmail naar gebruiker.
-	 */
-	private function sendApprovalEmail(int $userId): void
-	{
-		$db = Factory::getDbo();
-		$app = Factory::getApplication();
-		$config = $app->getConfig();
 
-		$user = Factory::getContainer()->get(UserFactoryInterface::class)->loadUserById($userId);
-		if (!$user || !$user->id || !$user->email) {
-			return;
-		}
+    // ===========================================================================
+    // Mail methodes (ALLEEN TEMPLATES GECORRIGEERD)
+    // ===========================================================================
 
-		$loginUrl = Uri::root() . 'index.php?simplelogin=1';
+    /**
+     * Verstuurd goedkeuringsmail naar gebruiker.
+     */
+    private function sendApprovalEmail(int $userId): void
+    {
+        $user = Factory::getContainer()->get(UserFactoryInterface::class)->loadUserById($userId);
+        if (!$user || !$user->id || !$user->email) {
+            return;
+        }
 
-		$subject = $this->params->get('mail_approval_subject', 'Your registration has been approved');
-		$body = $this->mailService->buildMailBody(
-			$this->params->get('mail_approval_body', ''),
-			[
-				'#name'  => $user->name,
-				'#link'  => $loginUrl,
-				'#sitename' => $config->get('sitename'),
-			]
-		);
+        // Alleen sturen als gebruiker AL geactiveerd is
+        if ($this->isPendingActivation($user->activation)) {
+            return;
+        }
 
-		$this->mailService->sendMail($user->email, $subject, $body);
-	}
+        $loginUrl = Uri::root() . 'index.php?simplelogin=1';
 
-	/**
-	 * Verstuurd afkeurmail naar gebruiker.
-	 */
-	private function sendRejectionEmail(int $userId, string $reason = ''): void
-	{
-		$db = Factory::getDbo();
-		$app = Factory::getApplication();
-		$config = $app->getConfig();
+        // 👈 GECORRIGEERD: Juiste templates
+        [$subject, $body, $isHtml] = $this->resolveMailTemplate('mail_approval_subject', 'mail_approval_body');
+        $this->mailService->sendMail(
+            $user->email,
+            $subject,
+            $body,
+            [
+                '#name'  => $user->name,
+                '#link'  => $loginUrl,
+            ],
+            $isHtml
+        );
+    }
 
-		$user = Factory::getContainer()->get(UserFactoryInterface::class)->loadUserById($userId);
-		if (!$user || !$user->id || !$user->email) {
-			return;
-		}
+    /**
+     * Verstuurd afkeurmail naar gebruiker.
+     */
+    private function sendRejectionEmail(int $userId, string $reason = ''): void
+    {
+        $user = Factory::getContainer()->get(UserFactoryInterface::class)->loadUserById($userId);
+        if (!$user || !$user->id || !$user->email) {
+            return;
+        }
 
-		$subject = $this->params->get('mail_rejection_subject', 'Your registration has been rejected');
-		$body = $this->mailService->buildMailBody(
-			$this->params->get('mail_rejection_body', ''),
-			[
-				'#name'    => $user->name,
-				'#reason'  => $reason,
-				'#sitename' => $config->get('sitename'),
-			]
-		);
-
-		$this->mailService->sendMail($user->email, $subject, $body);
-	}
+        // 👈 GECORRIGEERD: Juiste templates + GEEN #link
+        [$subject, $body, $isHtml] = $this->resolveMailTemplate('mail_rejection_subject', 'mail_rejection_body');
+        $this->mailService->sendMail(
+            $user->email,
+            $subject,
+            $body,
+            [
+                '#name'   => $user->name,
+                '#reason' => $reason,
+            ],
+            $isHtml
+        );
+    }
 }
