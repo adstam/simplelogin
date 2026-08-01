@@ -14,9 +14,9 @@ defined('_JEXEC') or die;
 use Joomla\CMS\Form\FormField;
 use StamPlusJ\Plugin\System\Simplelogin\Helper\ReportHelper;
 
-class ApprovalReportField extends FormField
+class ApprovalreportField extends FormField
 {
-    protected $type = 'ApprovalReport';
+    protected $type = 'Approvalreport';
 
     protected function getInput()
     {
