@@ -7,19 +7,19 @@
 
 ## Inhoudsopgave
 
-1. [Doel van de plugin](#doel-van-de-plugin)
-2. [Architectuurpatroon](#architectuurpatroon)
-3. [Ontwerpprincipes](#ontwerpprincipes)
-4. [Verantwoordelijkheidslagen](#verantwoordelijkheidslagen)
-5. [Registratie- en goedkeuringsflow (conceptueel)](#registratie--en-goedkeuringsflow-conceptueel)
-6. [Beveiligingsprincipes](#beveiligingsprincipes)
-7. [Configuratie](#configuratie)
-8. [Afhankelijkheden](#afhankelijkheden)
-9. [Grenzen van de architectuur](#grenzen-van-de-architectuur)
+1. [Doel van de plugin](#1)
+2. [Architectuurpatroon](#2)
+3. [Ontwerpprincipes](#3)
+4. [Verantwoordelijkheidslagen](#4)
+5. [Registratie- en goedkeuringsflow (conceptueel)](#5)
+6. [Beveiligingsprincipes](#6)
+7. [Configuratie](#7)
+8. [Afhankelijkheden](#8)
+9. [Grenzen van de architectuur](#9)
 
 ---
 
-## Doel van de plugin
+## Doel van de plugin{1}
 
 SimpleLogin is een Joomla system-plugin voor **wachtwoordloze authenticatie** via e-maillinks. Gebruikers loggen in door een beveiligde link per e-mail aan te vragen; nieuwe gebruikers kunnen zich op dezelfde manier wachtwoordloos registreren, optioneel achter handmatige admingoedkeuring.
 
@@ -27,7 +27,7 @@ De plugin is bedoeld als **vervanging of aanvulling** op Joomla's ingebouwde wac
 
 ---
 
-## Architectuurpatroon
+## Architectuurpatroon{2}
 
 De plugin volgt een **modulaire, trait-gebaseerde architectuur** met een dunne service-laag voor cross-cutting concerns (mail):
 
@@ -39,7 +39,7 @@ De plugin volgt een **modulaire, trait-gebaseerde architectuur** met een dunne s
 
 ---
 
-## Ontwerpprincipes
+## Ontwerpprincipes{3}
 
 1. **Separation of Concerns** — iedere trait/service bedient één domein.
 2. **Single Responsibility** — iedere methode heeft één duidelijk doel.
@@ -51,7 +51,7 @@ Deze principes zijn een concretisering van de uitgangspunten in [WAYOFWORK.md](W
 
 ---
 
-## Verantwoordelijkheidslagen
+## Verantwoordelijkheidslagen{4}
 
 | Laag | Verantwoordelijkheid |
 |---|---|
@@ -71,7 +71,7 @@ Voor de concrete klassen, bestanden en hun onderlinge afhankelijkheden: zie [ARC
 
 ---
 
-## Registratie- en goedkeuringsflow (conceptueel)
+## Registratie- en goedkeuringsflow (conceptueel){5}
 
 ```
 Registratie → invite-mail (selector/validator link)
@@ -88,7 +88,7 @@ Voor de exacte statemachine, tokentypen en admin-AJAX-acties: zie de appendix.
 
 ---
 
-## Beveiligingsprincipes
+## Beveiligingsprincipes{6}
 
 - **Login voltrekt zich uitsluitend op POST.** Een kale GET op een tokenlink logt nooit in en activeert nooit een account — dit ontkracht link-preview bots en mailscanners die alleen GET-requests doen. Dit is een vast architectuurprincipe, niet een implementatiedetail dat per sprint heroverwogen wordt.
 - **Tokens zijn selector/validator-paren.** De selector is publiek en dient als lookup-sleutel; de validator wordt nooit in leesbare vorm opgeslagen, alleen gehasht.
@@ -102,13 +102,13 @@ Deze principes zijn getoetst en (waar nodig) hersteld tijdens de beveiligingsrev
 
 ---
 
-## Configuratie
+## Configuratie{7}
 
 Configuratie is geschreven voor websitebeheerders, niet voor ontwikkelaars (zie [WAYOFWORK.md](WAYOFWORK.md#ontwerpprincipes)). Voor de volledige lijst parameters, hun defaultwaarden en hun betekenis: zie **[DEFAULT.md](DEFAULT.md)**. Dit document dupliceert die referentie niet.
 
 ---
 
-## Afhankelijkheden
+## Afhankelijkheden{8}
 
 - Joomla core (geen versie-specifieke aannames buiten wat in de appendix als "actueel geteste versie" staat).
 - PHP, actuele ondersteunde versie.
@@ -118,7 +118,7 @@ De exacte geteste versies en eventuele afwijkingen staan in de appendix, omdat d
 
 ---
 
-## Grenzen van de architectuur
+## Grenzen van de architectuur{9}
 
 Wat bewust **buiten** de scope van deze plugin blijft, ongeacht toekomstige sprints:
 
@@ -132,7 +132,6 @@ Bekende, tijdelijk geaccepteerde beperkingen (die wél kunnen wijzigen naarmate 
 
 ## Gerelateerde documenten
 
-- [ARCHITECTURE_APPENDIX.md](ARCHITECTURE_APPENDIX.md) — implementatie-inventaris, klassenstructuur, databaseschema, beveiligingsreview, bekende beperkingen, ADR-archief.
-- [README.md](README.md) — installatie en gebruik voor eindgebruikers/beheerders.
-- [DEFAULT.md](DEFAULT.md) — volledige configuratiereferentie.
-- [WAYOFWORK.md](WAYOFWORK.md) — samenwerkings- en ontwikkelwerkwijze.
+- **ARCHITECTURE_APPENDIX.md** — implementatie-inventaris, klassenstructuur, databaseschema, beveiligingsreview, bekende beperkingen, ADR-archief.
+- **README.md** — installatie en gebruik voor eindgebruikers/beheerders.
+- **CHANGELOG.md** - Overzicht van de wijzigingsgeschiedenis
