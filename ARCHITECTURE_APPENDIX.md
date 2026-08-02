@@ -10,21 +10,21 @@
 
 ## Inhoudsopgave
 
-1. [Bestandsstructuur](#bestandsstructuur)
-2. [Klassenstructuur](#klassenstructuur)
-3. [Component diagram (routing)](#component-diagram-routing)
-4. [Registratie- en goedkeuringsflow (implementatie)](#registratie--en-goedkeuringsflow-implementatie)
-5. [Standaardinstellingen](##Standaard-instellingen)
-6. [Database](#database)
-7. [Afhankelijkheden](#afhankelijkheden)
-8. [Beveiligingsreview 1.1.0](#beveiligingsreview-110)
-9. [Bekende beperkingen](#bekende-beperkingen)
-10. [Versiegeschiedenis](#versiegeschiedenis)
-11. [Architecture Decision Records](#architecture-decision-records)
+1. [Bestandsstructuur](#1)
+2. [Klassenstructuur](#2)
+3. [Component diagram (routing)](#3)
+4. [Registratie- en goedkeuringsflow (implementatie)](#4)
+5. [Standaardinstellingen](#5)
+6. [Database](#6)
+7. [Afhankelijkheden](#7)
+8. [Beveiligingsreview 1.1.0](#8)
+9. [Bekende beperkingen](#9)
+10. [Versiegeschiedenis](#10)
+11. [Architecture Decision Records](#11)
 
 ---
 
-## Bestandsstructuur
+## Bestandsstructuur<a id="1"></a>
 
 ```
 plg_system_simplelogin/
@@ -99,7 +99,7 @@ plg_system_simplelogin/
 
 ---
 
-## Klassenstructuur
+## Klassenstructuur<a id="2"></a>
 
 `Simplelogin` (extends `CMSPlugin`) stelt zijn gedrag volledig samen uit traits:
 
@@ -116,7 +116,7 @@ plg_system_simplelogin/
 
 ---
 
-## Component diagram (routing)
+## Component diagram (routing)<a id="3"></a>
 
 ```
 Frontend request
@@ -154,7 +154,7 @@ onContentPrepareForm → client-side afbeelding-URL-validatie voor het eigen
 
 ---
 
-## Registratie- en goedkeuringsflow (implementatie)
+## Registratie- en goedkeuringsflow (implementatie)<a id="4"></a>
 
 ```
 POST register form
@@ -194,7 +194,7 @@ Gebruiker klikt invite-link (GET) ──► handleInviteActivation()
 
 ---
 
-## Standaard instellingen
+## Standaard instellingen<a id="5"></a>
 
 Dit hoofdstuk vermeldt elke configuratieparameter die door de plugin wordt aangeboden (Extensies → Plugins → Systeem - Simplelogin), gegroepeerd per veldset waarin deze verschijnt, met de standaardwaarde 'out-of-the-box' en wat de parameter regelt. Zie [README.md](README.md) voor een algemene handleiding om te beginnen; zie [ARCHITECTURE.md](ARCHITECTURE.md) voor hoe deze parameters intern worden gebruikt.
 
@@ -346,7 +346,7 @@ Bij een schone installatie zonder configuratiewijzigingen zal SimpleLogin:
 
 Als u `require_admin_approval` voor het eerst inschakelt, zet dan ook `show_approval_mail` en `show_rejection_mail` aan, zodat u de formulering van deze twee nieuwe 1.1.0-e-mailsjablonen kunt zien en desgewenst aanpassen — ze worden verzonden ongeacht of hun velden zichtbaar zijn in het beheerdersformulier.
 
-## Database
+## Database<a id="6"></a>
 
 ### Entity-Relationship Diagram
 
@@ -473,7 +473,7 @@ Auditlog voor alle plugin-acties.
 
 ---
 
-## Afhankelijkheden
+## Afhankelijkheden<a id="7"></a>
 
 - **Joomla 6.x** core (Session, Factory, Mailer, User, Router, Uri, Layout, Log, HTML, Form, DI-container)
 - **PHP 8.1+** (gebruikt `str_contains`/`str_starts_with`/`str_ends_with`, typed properties, arrow functions)
@@ -481,7 +481,7 @@ Auditlog voor alle plugin-acties.
 
 ---
 
-## Beveiligingsreview 1.1.0
+## Beveiligingsreview 1.1.0<a id="8"></a>
 
 Ter voorbereiding van de 1.1.0-release is de codebase gecontroleerd op defecten die niet noodzakelijk via normaal handmatig testen aan het licht komen. De volgende bevindingen zijn gevonden en **direct in deze release opgelost**:
 
@@ -519,7 +519,7 @@ Deze review was gescoped op correctheids- en beveiligingsdefecten voor de 1.1.0-
 
 ---
 
-## Bekende beperkingen
+## Bekende beperkingen<a id="9"></a>
 
 Gepland voor **1.2.0**:
 
@@ -531,7 +531,7 @@ Gepland voor **1.2.0**:
 
 ---
 
-## Versiegeschiedenis
+## Versiegeschiedenis<a id="10"></a>
 
 - **1.1.0** (2026-07-29) — Admin-goedkeuringsflow, HTML-mail + CID-afbeeldingsembedding, editor-agnostische variabele-knoppen, beveiligings-/defectreview (zie hierboven).
 - **1.0.5** (2026-07-05) — Bugfixrelease: overlay toont alleen neutrale melding na link-opvraag; meldingsstijl gecorrigeerd.
@@ -539,7 +539,7 @@ Gepland voor **1.2.0**:
 
 ---
 
-## Architecture Decision Records
+## Architecture Decision Records<a id="11"></a>
 
 Vaste template per ADR: Status, Datum, Context, Beslissing, Consequenties, Alternatieven overwogen. Een geaccepteerde ADR wordt niet met terugwerkende kracht gewijzigd; een herzien besluit krijgt een nieuwe ADR die de vorige expliciet "supersedet" (zie [WAYOFWORK.md](WAYOFWORK.md)).
 
@@ -547,16 +547,16 @@ Vaste template per ADR: Status, Datum, Context, Beslissing, Consequenties, Alter
 
 | Nr | Titel | Status | Datum |
 |---|---|---|---|
-| [ADR-0001](#adr-0001-trait-gebaseerde-architectuur-met-geïnjecteerde-mailservice) | Trait-gebaseerde architectuur met geïnjecteerde MailService | Accepted | 2025 (pre-1.0) |
-| [ADR-0002](#adr-0002-geen-third-party-composer-dependencies) | Geen third-party Composer-dependencies | Accepted | 2025 (pre-1.0) |
-| [ADR-0003](#adr-0003-selectorvalidator-tokens-met-verplichte-post-voor-login) | Selector/validator-tokens met verplichte POST voor login | Accepted | 2025 (pre-1.0) |
-| [ADR-0004](#adr-0004-packed-binary-opslag-van-ip-adressen) | Packed binary opslag van IP-adressen | Accepted | 2025 (pre-1.0) |
-| [ADR-0005](#adr-0005-registrationstatusfield-als-lokale-mirror-voor-showon) | RegistrationStatusField als lokale mirror voor `showon` | Accepted | 2026-07-29 |
-| [ADR-0006](#adr-0006-goedkeuringswachtrij-scopen-via-invite-token-niet-via-generieke-blocked-status) | Goedkeuringswachtrij scopen via invite-token, niet via generieke blocked-status | Accepted | 2026-07-29 |
+| [ADR-0001](#110001) | Trait-gebaseerde architectuur met geïnjecteerde MailService | Accepted | 2025 (pre-1.0) |
+| [ADR-0002](#110002) | Geen third-party Composer-dependencies | Accepted | 2025 (pre-1.0) |
+| [ADR-0003](#110003) | Selector/validator-tokens met verplichte POST voor login | Accepted | 2025 (pre-1.0) |
+| [ADR-0004](#110004) | Packed binary opslag van IP-adressen | Accepted | 2025 (pre-1.0) |
+| [ADR-0005](#110005) | RegistrationStatusField als lokale mirror voor `showon` | Accepted | 2026-07-29 |
+| [ADR-0006](#110006) | Goedkeuringswachtrij scopen via invite-token, niet via generieke blocked-status | Accepted | 2026-07-29 |
 
 ---
 
-### ADR-0001: Trait-gebaseerde architectuur met geïnjecteerde MailService
+### ADR-0001: Trait-gebaseerde architectuur met geïnjecteerde MailService<a id="110001"></a>
 
 **Status:** Accepted
 **Datum:** 2025 (pre-1.0)
@@ -578,7 +578,7 @@ Businesslogica wordt verdeeld over traits, één per domein, samengesteld in de 
 
 ---
 
-### ADR-0002: Geen third-party Composer-dependencies
+### ADR-0002: Geen third-party Composer-dependencies<a id="110002"></a>
 
 **Status:** Accepted
 **Datum:** 2025 (pre-1.0)
@@ -599,7 +599,7 @@ Geen third-party Composer-packages naast wat Joomla core al aanbiedt. HTML-parsi
 
 ---
 
-### ADR-0003: Selector/validator-tokens met verplichte POST voor login
+### ADR-0003: Selector/validator-tokens met verplichte POST voor login<a id="110003"></a>
 
 **Status:** Accepted
 **Datum:** 2025 (pre-1.0)
@@ -621,7 +621,7 @@ Tokens bestaan uit een publieke selector (lookup-sleutel) en een geheime validat
 
 ---
 
-### ADR-0004: Packed binary opslag van IP-adressen
+### ADR-0004: Packed binary opslag van IP-adressen<a id="110004"></a>
 
 **Status:** Accepted
 **Datum:** 2025 (pre-1.0)
@@ -641,7 +641,7 @@ IP-adressen worden opgeslagen als `VARBINARY(16)` (packed binary), niet als lees
 
 ---
 
-### ADR-0005: RegistrationStatusField als lokale mirror voor `showon`
+### ADR-0005: RegistrationStatusField als lokale mirror voor `showon`<a id="110005"></a>
 
 **Status:** Accepted
 **Datum:** 2026-07-29 (sprint 1.1.0)
@@ -664,7 +664,7 @@ Een nieuw custom field type, `RegistrationStatusField` (type `registrationstatus
 
 ---
 
-### ADR-0006: Goedkeuringswachtrij scopen via invite-token, niet via generieke blocked-status
+### ADR-0006: Goedkeuringswachtrij scopen via invite-token, niet via generieke blocked-status<a id="160001"></a>
 
 **Status:** Accepted
 **Datum:** 2026-07-29 (sprint 1.1.0)
