@@ -14,7 +14,7 @@
 2. [Klassenstructuur](#klassenstructuur)
 3. [Component diagram (routing)](#component-diagram-routing)
 4. [Registratie- en goedkeuringsflow (implementatie)](#registratie--en-goedkeuringsflow-implementatie)
-5. [Standaardinstellingen] #Standaard instellingen
+5. [Standaardinstellingen](##Standaard-instellingen)
 6. [Database](#database)
 7. [Afhankelijkheden](#afhankelijkheden)
 8. [Beveiligingsreview 1.1.0](#beveiligingsreview-110)
