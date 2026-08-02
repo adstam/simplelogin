@@ -19,7 +19,7 @@
 
 ---
 
-## Doel van de plugin{1}
+## Doel van de plugin<a id="1"></a>
 
 SimpleLogin is een Joomla system-plugin voor **wachtwoordloze authenticatie** via e-maillinks. Gebruikers loggen in door een beveiligde link per e-mail aan te vragen; nieuwe gebruikers kunnen zich op dezelfde manier wachtwoordloos registreren, optioneel achter handmatige admingoedkeuring.
 
@@ -27,7 +27,7 @@ De plugin is bedoeld als **vervanging of aanvulling** op Joomla's ingebouwde wac
 
 ---
 
-## Architectuurpatroon{2}
+## Architectuurpatroon<a id="2"></a>
 
 De plugin volgt een **modulaire, trait-gebaseerde architectuur** met een dunne service-laag voor cross-cutting concerns (mail):
 
@@ -39,7 +39,7 @@ De plugin volgt een **modulaire, trait-gebaseerde architectuur** met een dunne s
 
 ---
 
-## Ontwerpprincipes{3}
+## Ontwerpprincipes<a id="3"></a>
 
 1. **Separation of Concerns** — iedere trait/service bedient één domein.
 2. **Single Responsibility** — iedere methode heeft één duidelijk doel.
@@ -51,7 +51,7 @@ Deze principes zijn een concretisering van de uitgangspunten in [WAYOFWORK.md](W
 
 ---
 
-## Verantwoordelijkheidslagen{4}
+## Verantwoordelijkheidslagen<a id="4"></a>
 
 | Laag | Verantwoordelijkheid |
 |---|---|
@@ -71,7 +71,7 @@ Voor de concrete klassen, bestanden en hun onderlinge afhankelijkheden: zie [ARC
 
 ---
 
-## Registratie- en goedkeuringsflow (conceptueel){5}
+## Registratie- en goedkeuringsflow (conceptueel)<a id="5"></a>
 
 ```
 Registratie → invite-mail (selector/validator link)
@@ -88,7 +88,7 @@ Voor de exacte statemachine, tokentypen en admin-AJAX-acties: zie de appendix.
 
 ---
 
-## Beveiligingsprincipes{6}
+## Beveiligingsprincipes<a id="6"></a>
 
 - **Login voltrekt zich uitsluitend op POST.** Een kale GET op een tokenlink logt nooit in en activeert nooit een account — dit ontkracht link-preview bots en mailscanners die alleen GET-requests doen. Dit is een vast architectuurprincipe, niet een implementatiedetail dat per sprint heroverwogen wordt.
 - **Tokens zijn selector/validator-paren.** De selector is publiek en dient als lookup-sleutel; de validator wordt nooit in leesbare vorm opgeslagen, alleen gehasht.
@@ -102,13 +102,13 @@ Deze principes zijn getoetst en (waar nodig) hersteld tijdens de beveiligingsrev
 
 ---
 
-## Configuratie{7}
+## Configuratie<a id="7"></a>
 
 Configuratie is geschreven voor websitebeheerders, niet voor ontwikkelaars (zie [WAYOFWORK.md](WAYOFWORK.md#ontwerpprincipes)). Voor de volledige lijst parameters, hun defaultwaarden en hun betekenis: zie **[DEFAULT.md](DEFAULT.md)**. Dit document dupliceert die referentie niet.
 
 ---
 
-## Afhankelijkheden{8}
+## Afhankelijkheden<a id="8"></a>
 
 - Joomla core (geen versie-specifieke aannames buiten wat in de appendix als "actueel geteste versie" staat).
 - PHP, actuele ondersteunde versie.
@@ -118,8 +118,7 @@ De exacte geteste versies en eventuele afwijkingen staan in de appendix, omdat d
 
 ---
 
-## Grenzen van de architectuur{9}
-
+## Grenzen van de architectuur<a id="9"></a>
 Wat bewust **buiten** de scope van deze plugin blijft, ongeacht toekomstige sprints:
 
 - Geen eigen framework of alternatieve architectuur naast Joomla Core.
