@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.1] - 2026-08-04
+
+### Bugfixes
+- **Default instellingen HTML body** Bij verse installatie werde de body van HTML mail niet geladen waardoor de mailbody leeg bleef en het verzenden van mail een fatale fout gaf. Dit is opgelost door in **script.php** de default waarden voor de HTML body al in de extensions tabel vast te leggen. 
+
 ## [1.1.0] - 2026-07-29
 
 ### Nieuwe functionaliteit

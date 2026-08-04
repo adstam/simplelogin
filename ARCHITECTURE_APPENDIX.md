@@ -33,7 +33,7 @@ plg_system_simplelogin/
 ├── DEFAULT.md
 ├── README.md
 ├── CHANGELOG.md
-├── script.php                       # postflight/uninstall: cache clearing
+├── script.php                       # postflight/uninstall: cache clearing, default waarden HTML body
 ├── simplelogin.xml
 │
 ├── src/
